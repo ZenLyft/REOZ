@@ -1,0 +1,54 @@
+name: CI - ZenLyft Revenue Engine
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web-tests:
+    name: Web App Verification (Lint, Test, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Web Unit & Security Tests
+        run: npm run test
+
+      - name: Verify Next.js Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
+          SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-key"
+
+  python-worker-lint:
+    name: Python Workers Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Linter & Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest
+
+      - name: Run Ruff Lint Check
+        run: ruff check workers/

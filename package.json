@@ -1,0 +1,14 @@
+{
+  "name": "zenlyft-revenue-engine",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@zenlyft/web",
+    "build": "npm run build --workspace=@zenlyft/web",
+    "lint": "npm run lint --workspace=@zenlyft/web",
+    "test": "npm run test --workspace=@zenlyft/web"
+  }
+}
