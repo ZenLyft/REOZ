@@ -44,3 +44,4 @@ async def test_prompt_injection_flagged_safely():
 
     assert brief.injection_suspected is True
     assert "prompt injection" in brief.business_summary.lower()
+

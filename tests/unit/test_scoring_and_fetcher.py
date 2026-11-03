@@ -68,3 +68,4 @@ def test_scoring_is_deterministic_and_transparent():
     assert result1.confidence == "high"
     assert len(result1.unknowns) == 0
     assert any(b.basis == "measured" for b in result1.breakdown)
+

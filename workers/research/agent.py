@@ -86,3 +86,4 @@ async def generate_research_brief(
     # Validate against Pydantic schema
     brief = ResearchBrief.model_validate(response.parsed_json)
     return brief
+

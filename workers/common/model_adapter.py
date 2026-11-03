@@ -129,3 +129,4 @@ def get_model_adapter() -> ModelAdapter:
     if groq_key and not groq_key.startswith("your_"):
         return GroqModelAdapter(api_key=groq_key)
     return MockModelAdapter()
+
