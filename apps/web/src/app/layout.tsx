@@ -19,11 +19,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'ZenLyft Engine',
+    statusBarStyle: 'black-translucent',
+    title: 'ZenLyft',
   },
   icons: {
-    apple: '/icon-192.png',
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
 };
 
