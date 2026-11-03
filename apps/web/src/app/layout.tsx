@@ -10,17 +10,17 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0369a1',
+  themeColor: '#09090b',
 };
 
 export const metadata: Metadata = {
-  title: 'ZenLyft Revenue Engine',
-  description: 'Internal B2B pipeline, lead qualification, and proposal platform for ZenLyft.',
+  title: 'REOZ — ZenLyft Revenue Engine',
+  description: 'REOZ: Internal B2B pipeline, lead qualification, and proposal platform for ZenLyft.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'ZenLyft',
+    title: 'REOZ',
   },
   icons: {
     icon: '/favicon.ico',

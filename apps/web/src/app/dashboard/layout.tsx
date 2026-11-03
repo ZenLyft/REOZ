@@ -22,14 +22,14 @@ export default async function DashboardLayout({
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-              Z
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+              R
             </div>
             <div>
-              <span className="font-semibold text-slate-900 tracking-tight text-sm sm:text-base">
-                ZenLyft Revenue Engine
+              <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-base">
+                REOZ
               </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-medium bg-sky-100 text-sky-800 rounded-full">
+              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">
                 Founder Mode
               </span>
             </div>

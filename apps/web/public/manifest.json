@@ -1,11 +1,11 @@
 {
-  "name": "ZenLyft Revenue Engine",
-  "short_name": "ZenLyft",
-  "description": "Founder B2B operating platform for ZenLyft",
+  "name": "REOZ by ZenLyft",
+  "short_name": "REOZ",
+  "description": "REOZ - Revenue Engine & Operating Zone for ZenLyft",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#0369a1",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
   "icons": [
     {
