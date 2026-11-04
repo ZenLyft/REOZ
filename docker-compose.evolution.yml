@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  evolution-api:
+    image: atendai/evolution-api:v2.2.3
+    container_name: zenlyft-evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Server Configuration
+      - SERVER_URL=http://localhost:8080
+      - SERVER_TYPE=http
+      - SERVER_PORT=8080
+
+      # Global API Key for REOZ Authentication
+      - AUTHENTICATION_API_KEY=zenlyft-reoz-secret-key-2026
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+
+      # Local Database Configuration (Zero-cost, no separate PostgreSQL needed)
+      - DATABASE_PROVIDER=local
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+
+      # Webhook Configuration (Auto-delivers inbound client replies to REOZ)
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_URL=https://reoz.vercel.app/api/webhooks/evolution
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+
+      # Device Identity
+      - CONFIG_SESSION_PHONE_CLIENT=ZenLyft REOZ
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+
+      # Cache & Performance (Lightweight mode without Redis)
+      - CACHE_REDIS_ENABLED=false
+      - QRCODE_LIMIT=30
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+
+volumes:
+  evolution_instances:
+  evolution_store:
