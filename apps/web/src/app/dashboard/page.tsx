@@ -22,19 +22,26 @@ export default async function DashboardPage() {
     console.error('Error fetching audit logs:', err);
   }
 
-  // Fetch settings for global pause status
-  let isPaused = false;
+  // Fetch live counts
+  let discoveredCount = 0;
+  let qualifiedCount = 0;
+  let approvalsCount = 0;
+  let wonCount = 0;
+
   try {
-    const { data: settingData } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'global_pause')
-      .single();
-    if (settingData?.value?.paused) {
-      isPaused = true;
-    }
-  } catch {
-    // If settings table not seeded yet, fallback to false
+    const { count: dCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+    discoveredCount = dCount || 0;
+
+    const { count: qCount } = await supabase.from('leads').select('*', { count: 'exact', head: true }).gte('score', 60);
+    qualifiedCount = qCount || 0;
+
+    const { count: aCount } = await supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    approvalsCount = aCount || 0;
+
+    const { count: wCount } = await supabase.from('leads').select('*', { count: 'exact', head: true }).eq('pipeline_stage', 'won');
+    wonCount = wCount || 0;
+  } catch (err) {
+    console.error('Error fetching dashboard counts:', err);
   }
 
   return (
@@ -67,35 +74,35 @@ export default async function DashboardPage() {
 
       {/* KPI / Pipeline Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <a href="/dashboard/leads" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-400 transition">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Discovered Leads
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-2">0</div>
+          <div className="text-2xl font-bold text-slate-900 mt-2">{discoveredCount}</div>
           <div className="text-xs text-slate-400 mt-1">Local businesses & institutions</div>
-        </div>
+        </a>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <a href="/dashboard/leads" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-400 transition">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Qualified (Score &gt; 60)
           </div>
-          <div className="text-2xl font-bold text-sky-600 mt-2">0</div>
+          <div className="text-2xl font-bold text-sky-600 mt-2">{qualifiedCount}</div>
           <div className="text-xs text-slate-400 mt-1">Ready for research brief</div>
-        </div>
+        </a>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <a href="/dashboard/approvals" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-400 transition">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Pending Approvals
           </div>
-          <div className="text-2xl font-bold text-amber-600 mt-2">0</div>
+          <div className="text-2xl font-bold text-amber-600 mt-2">{approvalsCount}</div>
           <div className="text-xs text-slate-400 mt-1">Outreach & proposal drafts</div>
-        </div>
+        </a>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Won Deals
           </div>
-          <div className="text-2xl font-bold text-emerald-600 mt-2">0</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-2">{wonCount}</div>
           <div className="text-xs text-slate-400 mt-1">₹0 cash collected</div>
         </div>
       </div>
