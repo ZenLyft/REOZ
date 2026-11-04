@@ -27,6 +27,7 @@ export default async function DashboardPage() {
   let qualifiedCount = 0;
   let approvalsCount = 0;
   let wonCount = 0;
+  let isPaused = false;
 
   try {
     const { count: dCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });

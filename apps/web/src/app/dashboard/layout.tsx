@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { AIChatDrawer } from '@/components/AIChatDrawer';
 
 export default async function DashboardLayout({
   children,
@@ -55,6 +56,9 @@ export default async function DashboardLayout({
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {children}
       </main>
+
+      {/* Floating AI Orchestrator Command Centre */}
+      <AIChatDrawer />
 
       {/* Mobile Bottom Navigation Bar (iPhone PWA Navigation) */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 md:hidden flex justify-around py-2.5 px-2 safe-area-bottom">
