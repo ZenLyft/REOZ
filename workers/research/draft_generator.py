@@ -4,9 +4,9 @@ Uses ONLY the Research Brief and Approved Pricing Catalogue entries.
 Never invents prices or promises unapproved discounts.
 """
 
-from typing import Dict, Any, Optional
-from workers.common.model_adapter import ModelAdapter, get_model_adapter
+from typing import Any
 
+from workers.common.model_adapter import ModelAdapter, get_model_adapter
 
 DRAFT_SYSTEM_PROMPT = """You are the ZenLyft Revenue Engine Outreach & Proposal Drafter.
 Your role is to write a concise, highly respectful, personalized outreach draft for founder Niresh Senthoor.
@@ -21,16 +21,14 @@ RULES:
 
 
 def generate_draft_prompts(
-    lead: Dict[str, Any],
-    channel: str,
-    target_language: str = "English"
+    lead: dict[str, Any], channel: str, target_language: str = "English"
 ) -> str:
     return f"""
 TARGET LEAD:
-- Name: {lead.get('organisation_name')}
-- Category: {lead.get('category')}
-- Location: {lead.get('location')}
-- Website: {lead.get('website_url') or 'None found in checked sources'}
+- Name: {lead.get("organisation_name")}
+- Category: {lead.get("category")}
+- Location: {lead.get("location")}
+- Website: {lead.get("website_url") or "None found in checked sources"}
 - Channel: {channel} (e.g. WhatsApp or Email)
 - Language: {target_language}
 
@@ -39,10 +37,10 @@ Generate a clear draft message.
 
 
 async def draft_outreach(
-    lead: Dict[str, Any],
+    lead: dict[str, Any],
     channel: str = "whatsapp",
     target_language: str = "English",
-    adapter: Optional[ModelAdapter] = None
+    adapter: ModelAdapter | None = None,
 ) -> str:
     model = adapter or get_model_adapter()
     prompt = generate_draft_prompts(lead, channel, target_language)
@@ -50,7 +48,7 @@ async def draft_outreach(
     # For drafting we request a direct message structure
     response = await model.generate_json(
         DRAFT_SYSTEM_PROMPT,
-        prompt + "\nReturn JSON with single key: {\"draft_text\": \"...\"}"
+        prompt + '\nReturn JSON with single key: {"draft_text": "..."}',
     )
 
     if response.parsed_json and "draft_text" in response.parsed_json:
@@ -62,4 +60,3 @@ async def draft_outreach(
         f"Would you be open to seeing a 2-minute concept for your business? "
         f"(Let us know if you prefer not to be contacted.)"
     )
-

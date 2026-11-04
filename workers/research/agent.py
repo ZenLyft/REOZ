@@ -3,8 +3,10 @@ Research Brief Schema and Generator Agent
 Implements Section 9 of the Master Specification.
 """
 
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field, ValidationError
+from typing import Any
+
+from pydantic import BaseModel, Field
+
 from workers.common.model_adapter import ModelAdapter, get_model_adapter
 
 
@@ -32,12 +34,12 @@ class ResearchBrief(BaseModel):
     lead_id: str
     website_status: str
     business_summary: str
-    evidence: List[EvidenceItem]
-    audit_findings: List[AuditFinding]
-    likely_needs: List[str]
+    evidence: list[EvidenceItem]
+    audit_findings: list[AuditFinding]
+    likely_needs: list[str]
     suggested_offer: str
-    public_contact_channels: List[ContactChannelItem]
-    unknowns: List[str]
+    public_contact_channels: list[ContactChannelItem]
+    unknowns: list[str]
     injection_suspected: bool
     overall_confidence: str = Field(pattern="^(high|medium|low)$")
 
@@ -53,18 +55,20 @@ CRITICAL SECURITY AND ACCURACY RULES:
 """
 
 
-def build_user_prompt(lead: Dict[str, Any], untrusted_page_text: Optional[str] = None) -> str:
+def build_user_prompt(
+    lead: dict[str, Any], untrusted_page_text: str | None = None
+) -> str:
     prompt = f"""
 LEAD RECORD:
-- ID: {lead.get('id')}
-- Organisation: {lead.get('organisation_name')}
-- Category: {lead.get('category')}
-- Location: {lead.get('location')}
-- Stated Website: {lead.get('website_url')}
-- Current Status: {lead.get('website_status')}
+- ID: {lead.get("id")}
+- Organisation: {lead.get("organisation_name")}
+- Category: {lead.get("category")}
+- Location: {lead.get("location")}
+- Stated Website: {lead.get("website_url")}
+- Current Status: {lead.get("website_status")}
 
 UNTRUSTED FETCHED CONTENT:
-{untrusted_page_text or 'No website text fetched.'}
+{untrusted_page_text or "No website text fetched."}
 
 Generate a ResearchBrief JSON object now.
 """
@@ -72,18 +76,19 @@ Generate a ResearchBrief JSON object now.
 
 
 async def generate_research_brief(
-    lead: Dict[str, Any],
-    untrusted_page_text: Optional[str] = None,
-    adapter: Optional[ModelAdapter] = None
+    lead: dict[str, Any],
+    untrusted_page_text: str | None = None,
+    adapter: ModelAdapter | None = None,
 ) -> ResearchBrief:
     model = adapter or get_model_adapter()
     user_prompt = build_user_prompt(lead, untrusted_page_text)
 
     response = await model.generate_json(SYSTEM_PROMPT, user_prompt)
     if not response.parsed_json:
-        raise ValueError(f"Model {response.provider} returned invalid JSON: {response.raw_content}")
+        raise ValueError(
+            f"Model {response.provider} returned invalid JSON: {response.raw_content}"
+        )
 
     # Validate against Pydantic schema
     brief = ResearchBrief.model_validate(response.parsed_json)
     return brief
-

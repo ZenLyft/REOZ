@@ -10,30 +10,32 @@ Provides swappable inference providers with strict JSON validation:
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field, ValidationError
+from typing import Any
+
+from pydantic import BaseModel
 
 
 class ModelResponse(BaseModel):
     provider: str
     model_name: str
     raw_content: str
-    parsed_json: Optional[Dict[str, Any]] = None
+    parsed_json: dict[str, Any] | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
 
 
 class ModelAdapter(ABC):
     @abstractmethod
-    async def generate_json(self, system_prompt: str, user_prompt: str) -> ModelResponse:
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str
+    ) -> ModelResponse:
         """Generates structured JSON response conforming strictly to schema."""
-        pass
 
 
 class MockModelAdapter(ModelAdapter):
     """Zero-cost mock adapter for deterministic unit tests and offline testing."""
 
-    def __init__(self, predefined_json: Optional[Dict[str, Any]] = None):
+    def __init__(self, predefined_json: dict[str, Any] | None = None):
         self.predefined_json = predefined_json or {
             "lead_id": "00000000-0000-0000-0000-000000000000",
             "website_status": "verified",
@@ -43,7 +45,7 @@ class MockModelAdapter(ModelAdapter):
                     "source_url": "https://example.com",
                     "observed_fact": "Contact page confirms physical clinic.",
                     "checked_at": "2026-11-04T00:00:00Z",
-                    "confidence": "high"
+                    "confidence": "high",
                 }
             ],
             "audit_findings": [
@@ -51,30 +53,43 @@ class MockModelAdapter(ModelAdapter):
                     "dimension": "mobile",
                     "finding": "Missing mobile viewport meta tag.",
                     "basis": "measured",
-                    "priority": 4
+                    "priority": 4,
                 }
             ],
             "likely_needs": ["Mobile responsive redesign", "Online booking form"],
             "suggested_offer": "Website Redesign & WhatsApp Booking Integration",
             "public_contact_channels": [
-                {"type": "phone", "value": "9876543210", "source_url": "https://example.com"}
+                {
+                    "type": "phone",
+                    "value": "9876543210",
+                    "source_url": "https://example.com",
+                }
             ],
             "unknowns": ["Decision maker name", "Budget"],
             "injection_suspected": False,
-            "overall_confidence": "high"
+            "overall_confidence": "high",
         }
 
-    async def generate_json(self, system_prompt: str, user_prompt: str) -> ModelResponse:
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str
+    ) -> ModelResponse:
         # Prompt-injection heuristic check
         injection_suspected = any(
             phrase in user_prompt.lower()
-            for phrase in ["ignore previous instructions", "system override", "delete database", "send email to all"]
+            for phrase in [
+                "ignore previous instructions",
+                "system override",
+                "delete database",
+                "send email to all",
+            ]
         )
 
         resp = dict(self.predefined_json)
         if injection_suspected:
             resp["injection_suspected"] = True
-            resp["business_summary"] = "CAUTION: External webpage contained suspected prompt injection instructions."
+            resp["business_summary"] = (
+                "CAUTION: External webpage contained suspected prompt injection instructions."
+            )
 
         return ModelResponse(
             provider="mock",
@@ -89,15 +104,20 @@ class MockModelAdapter(ModelAdapter):
 class GroqModelAdapter(ModelAdapter):
     """Groq Cloud inference adapter using fast open models (e.g. Llama 3 70B/8B)."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "llama-3.3-70b-versatile"):
+    def __init__(
+        self, api_key: str | None = None, model: str = "llama-3.3-70b-versatile"
+    ):
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
         self.model = model
 
-    async def generate_json(self, system_prompt: str, user_prompt: str) -> ModelResponse:
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str
+    ) -> ModelResponse:
         if not self.api_key:
             raise ValueError("GROQ_API_KEY is not set.")
 
         from groq import AsyncGroq
+
         client = AsyncGroq(api_key=self.api_key)
 
         response = await client.chat.completions.create(
@@ -129,4 +149,3 @@ def get_model_adapter() -> ModelAdapter:
     if groq_key and not groq_key.startswith("your_"):
         return GroqModelAdapter(api_key=groq_key)
     return MockModelAdapter()
-
