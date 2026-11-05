@@ -15,22 +15,21 @@ import httpx
 from workers.scoring.engine import score_local_business_website_opportunity
 
 OVERPASS_API_URL = "https://overpass-api.de/api/interpreter"
+NOMINATIM_API_URL = "https://nominatim.openstreetmap.org/search"
 
 # Target cities across India
 TARGET_CITIES = [
     {"name": "Coimbatore", "lat": 11.0168, "lon": 76.9558, "radius": 15000},
-    {"name": "Chennai", "lat": 13.0827, "lon": 80.2707, "radius": 15000},
-    {"name": "Bangalore", "lat": 12.9716, "lon": 77.5946, "radius": 15000},
-    {"name": "Madurai", "lat": 9.9252, "lon": 78.1198, "radius": 12000},
-    {"name": "Tiruchirappalli", "lat": 10.7905, "lon": 78.7047, "radius": 12000},
+    {"name": "Tiruppur", "lat": 11.1085, "lon": 77.3411, "radius": 15000},
+    {"name": "Erode", "lat": 11.3410, "lon": 77.7172, "radius": 15000},
     {"name": "Salem", "lat": 11.6643, "lon": 78.1460, "radius": 12000},
+    {"name": "Chennai", "lat": 13.0827, "lon": 80.2707, "radius": 15000},
+    {"name": "Madurai", "lat": 9.9252, "lon": 78.1198, "radius": 12000},
 ]
 
 # High-converting categories for websites, booking engines, and automation
 AMENITIES = [
     ("clinic", "Healthcare / Clinic"),
-    ("doctors", "Healthcare / Doctor"),
-    ("dentist", "Healthcare / Dental Clinic"),
     ("hospital", "Healthcare / Hospital"),
     ("college", "Education / College"),
     ("school", "Education / School"),
@@ -53,34 +52,77 @@ def normalize_phone(phone: str | None) -> str | None:
         return None
     digits = re.sub(r"\D", "", phone)
     if len(digits) == 10:
-        return digits
+        return f"91{digits}"
     if len(digits) == 12 and digits.startswith("91"):
-        return digits[2:]
+        return digits
     if len(digits) == 11 and digits.startswith("0"):
         return digits[1:]
     return digits if len(digits) >= 8 else None
 
 
-async def query_overpass_businesses(
-    lat: float, lon: float, radius: int, amenity_key: str, limit: int = 15
+async def query_osm_businesses(
+    city_name: str, amenity_key: str, limit: int = 8
 ) -> list[dict[str, Any]]:
-    """Queries OpenStreetMap Overpass API for verified physical businesses in radius."""
+    """Primary discovery via OpenStreetMap Nominatim with zero timeouts."""
+    query_url = f"{NOMINATIM_API_URL}?q={amenity_key}+in+{city_name}+Tamil+Nadu&format=json&addressdetails=1&limit={limit}"
+    headers = {"User-Agent": "ZenLyft-REOZ-Discovery/1.0 (contact@zenlyft.in)"}
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            resp = await client.get(query_url, headers=headers)
+            if resp.status_code == 200:
+                results = resp.json()
+                elements = []
+                for item in results:
+                    raw_name = (
+                        item.get("name")
+                        or item.get("display_name", "").split(",")[0].strip()
+                    )
+                    if raw_name:
+                        elements.append(
+                            {
+                                "tags": {
+                                    "name": raw_name,
+                                    "amenity": amenity_key,
+                                    "address": item.get("display_name", ""),
+                                    "city": city_name,
+                                },
+                                "lat": float(item.get("lat", 0)),
+                                "lon": float(item.get("lon", 0)),
+                            }
+                        )
+                return elements
+    except Exception as e:  # noqa: BLE001
+        print(f"[NOMINATIM QUERY WARNING]: {e}. Attempting Overpass fallback...")
+
+    # Fallback: Overpass
+    return await query_overpass_businesses(
+        11.0168, 76.9558, 10000, amenity_key, limit=limit
+    )
+
+
+async def query_overpass_businesses(
+    lat: float, lon: float, radius: int, amenity_key: str, limit: int = 5
+) -> list[dict[str, Any]]:
+    """Queries OpenStreetMap Overpass API as secondary fallback."""
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:15];
     (
       node["amenity"="{amenity_key}"](around:{radius},{lat},{lon});
-      way["amenity"="{amenity_key}"](around:{radius},{lat},{lon});
     );
     out tags {limit};
     """
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(OVERPASS_API_URL, data={"data": query})
-            if resp.status_code == 200:
-                data = resp.json()
-                return data.get("elements", [])
-    except Exception as e:  # noqa: BLE001
-        print(f"[OVERPASS QUERY ERROR]: {e}")
+    for mirror in [
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass-api.de/api/interpreter",
+    ]:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(mirror, data={"data": query})
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data.get("elements", [])
+        except Exception:  # noqa: BLE001, S112
+            continue
     return []
 
 
@@ -123,8 +165,8 @@ async def run_discovery_pipeline(max_leads_per_run: int = 10):
                     break
 
                 print(f"[*] Scanning {city['name']} for {category_label}...")
-                elements = await query_overpass_businesses(
-                    city["lat"], city["lon"], city["radius"], amenity_code, limit=10
+                elements = await query_osm_businesses(
+                    city["name"], amenity_code, limit=8
                 )
 
                 for el in elements:

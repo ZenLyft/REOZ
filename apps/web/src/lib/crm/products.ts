@@ -387,3 +387,4 @@ export function validateCommercialOffer(
     item,
   };
 }
+

@@ -44,3 +44,4 @@ services:
 volumes:
   evolution_instances:
   evolution_store:
+

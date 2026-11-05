@@ -117,3 +117,4 @@ export function calculateWeeklyCohortMetrics(
     recommended_corrective_action: action,
   };
 }
+

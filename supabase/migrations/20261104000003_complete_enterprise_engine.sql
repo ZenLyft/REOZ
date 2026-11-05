@@ -154,3 +154,4 @@ create policy "Auth users manage agent_executions" on public.agent_executions fo
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+
