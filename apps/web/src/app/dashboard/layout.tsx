@@ -20,6 +20,7 @@ export default async function DashboardLayout({
   const navLinks = [
     { href: '/dashboard', label: 'Overview' },
     { href: '/dashboard/agents', label: '15 AI Agents' },
+    { href: '/dashboard/whatsapp', label: 'WhatsApp Acquisition' },
     { href: '/dashboard/leads', label: 'Leads & Pipeline' },
     { href: '/dashboard/approvals', label: 'Approvals' },
     { href: '/dashboard/products', label: 'Catalogue' },

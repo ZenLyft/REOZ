@@ -1,0 +1,49 @@
+# =====================================================================
+# ZenLyft REOZ - OpenWA Production WhatsApp Gateway
+# GitHub: https://github.com/rmyndharis/OpenWA.git
+# =====================================================================
+# Runs OpenWA as an independent microservice connected to ZenLyft REOZ
+# Webhook URL: http://host.docker.internal:3000/api/webhooks/openwa
+# REST API: http://localhost:2785/api
+# Swagger Docs: http://localhost:2785/api/docs
+# =====================================================================
+
+version: '3.8'
+
+services:
+  openwa:
+    image: ghcr.io/rmyndharis/openwa:latest
+    container_name: zenlyft-openwa
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:2785:2785'
+    environment:
+      - NODE_ENV=production
+      - PORT=2785
+      - TZ=Asia/Kolkata
+      - LOG_LEVEL=info
+      - DATABASE_TYPE=sqlite
+      - DATABASE_DATABASE=/app/data/openwa.sqlite
+      - WHATSAPP_ENGINE=baileys # Safe, fast, light RAM footprint (~40MB vs 500MB)
+      - AUTO_START_SESSIONS=true
+      - SEND_PACING_ENABLED=true
+      - SIMULATE_TYPING=true
+      - MCP_ENABLED=true
+      - MCP_READONLY=true # Read-only MCP tools for agents (writes guarded by ZenLyft approval)
+      - ENABLE_SWAGGER=true
+      - CORS_ORIGINS=http://localhost:3000,https://zenlyft.in
+    volumes:
+      - ./data/openwa:/app/data
+    security_opt:
+      - 'no-new-privileges:true'
+    mem_limit: 1g
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:2785/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  default:
+    name: zenlyft-network

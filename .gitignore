@@ -64,3 +64,7 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# External Cloned Microservices & Runtime Data
+external/
+data/openwa/
