@@ -94,11 +94,19 @@ alter table public.whatsapp_messages enable row level security;
 alter table public.whatsapp_webhook_events enable row level security;
 alter table public.whatsapp_followups enable row level security;
 
+drop policy if exists "Auth users manage whatsapp_sessions" on public.whatsapp_sessions;
 create policy "Auth users manage whatsapp_sessions" on public.whatsapp_sessions for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage whatsapp_messages" on public.whatsapp_messages;
 create policy "Auth users manage whatsapp_messages" on public.whatsapp_messages for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage whatsapp_webhook_events" on public.whatsapp_webhook_events;
 create policy "Auth users manage whatsapp_webhook_events" on public.whatsapp_webhook_events for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage whatsapp_followups" on public.whatsapp_followups;
 create policy "Auth users manage whatsapp_followups" on public.whatsapp_followups for all to authenticated using (true) with check (true);
 
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+

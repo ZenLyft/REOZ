@@ -141,14 +141,31 @@ alter table public.payments enable row level security;
 alter table public.conversations enable row level security;
 alter table public.agent_executions enable row level security;
 
+drop policy if exists "Auth users manage system_settings" on public.system_settings;
 create policy "Auth users manage system_settings" on public.system_settings for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage products" on public.products;
 create policy "Auth users manage products" on public.products for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage clients" on public.clients;
 create policy "Auth users manage clients" on public.clients for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage projects" on public.projects;
 create policy "Auth users manage projects" on public.projects for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage project_milestones" on public.project_milestones;
 create policy "Auth users manage project_milestones" on public.project_milestones for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage invoices" on public.invoices;
 create policy "Auth users manage invoices" on public.invoices for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage payments" on public.payments;
 create policy "Auth users manage payments" on public.payments for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage conversations" on public.conversations;
 create policy "Auth users manage conversations" on public.conversations for all to authenticated using (true) with check (true);
+
+drop policy if exists "Auth users manage agent_executions" on public.agent_executions;
 create policy "Auth users manage agent_executions" on public.agent_executions for all to authenticated using (true) with check (true);
 
 grant usage on schema public to anon, authenticated, service_role;
