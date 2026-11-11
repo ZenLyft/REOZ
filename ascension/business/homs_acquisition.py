@@ -32,10 +32,32 @@ GLOBAL_DISCOVERY_HUBS: tuple[str, ...] = (
 _GLOBAL_SCOPE_ALIASES: frozenset[str] = frozenset(
     {"global", "world", "worldwide", "all", "planet", "earth", "anywhere", "all over the world"}
 )
+REGION_HUBS: dict[str, tuple[str, ...]] = {
+    "north_america": ("New York", "Toronto", "Austin", "Chicago"),
+    "north america": ("New York", "Toronto", "Austin", "Chicago"),
+    "europe": ("London", "Berlin", "Amsterdam", "Dublin"),
+    "eu": ("London", "Berlin", "Amsterdam", "Dublin"),
+    "middle_east": ("Dubai", "Abu Dhabi", "Riyadh", "Cape Town"),
+    "middle east": ("Dubai", "Abu Dhabi", "Riyadh", "Cape Town"),
+    "mea": ("Dubai", "Abu Dhabi", "Riyadh", "Cape Town"),
+    "apac": ("Singapore", "Bengaluru", "Tokyo", "Sydney"),
+    "asia": ("Singapore", "Bengaluru", "Tokyo", "Sydney"),
+    "latam": ("Sao Paulo", "Mexico City", "Bogota", "Santiago"),
+    "south america": ("Sao Paulo", "Mexico City", "Bogota", "Santiago"),
+}
 
 
 def _is_global_scope(region: str) -> bool:
     return region.strip().lower() in _GLOBAL_SCOPE_ALIASES
+
+
+def _resolve_target_hubs(region: str) -> tuple[list[str], bool]:
+    normalized = region.strip().lower()
+    if normalized in _GLOBAL_SCOPE_ALIASES:
+        return list(GLOBAL_DISCOVERY_HUBS), True
+    if normalized in REGION_HUBS:
+        return list(REGION_HUBS[normalized]), True
+    return [region.strip()], False
 
 
 def _make_prospect(
@@ -134,14 +156,16 @@ async def _fetch_nominatim_prospects(
     prospects: list[dict[str, Any]] = []
     seen: set[str] = set()
     last_error: str | None = None
-    target_cities = list(GLOBAL_DISCOVERY_HUBS) if _is_global_scope(city) else [city]
-    per_city_terms = ("college", "hostel") if _is_global_scope(city) else ("college", "hostel", "university")
+    target_cities, global_mode = _resolve_target_hubs(city)
+    per_city_terms = ("college", "hostel") if global_mode else ("college", "hostel", "university")
+    per_hub_cap = max(1, (limit + 3) // 4) if global_mode else limit
 
     for target_city in target_cities:
         if len(prospects) >= limit:
             break
+        hub_added = 0
         for term in per_city_terms:
-            if len(prospects) >= limit:
+            if len(prospects) >= limit or (global_mode and hub_added >= per_hub_cap):
                 break
             try:
                 resp = await client.get(
@@ -196,10 +220,11 @@ async def _fetch_nominatim_prospects(
                         discovered_at=now_iso,
                     )
                 )
-                if len(prospects) >= limit:
+                hub_added += 1
+                if len(prospects) >= limit or (global_mode and hub_added >= per_hub_cap):
                     break
-            if _is_global_scope(city) and prospects:
-                # Advance to next global hub once at least 1 institution was found here for worldwide spread.
+            if global_mode and hub_added >= per_hub_cap:
+                # Advance to next global hub so one global run spans multiple continents.
                 break
     return prospects, last_error
 
@@ -226,7 +251,8 @@ async def query_public_colleges_and_hostels(
     now_iso = datetime.now(UTC).isoformat()
     async with httpx.AsyncClient(timeout=15) as client:
         overpass_err: str | None = None
-        if not _is_global_scope(safe_city):
+        _, is_multi_hub = _resolve_target_hubs(safe_city)
+        if not is_multi_hub:
             prospects, overpass_err = await _fetch_overpass_prospects(client, safe_city, limit, now_iso)
             if prospects:
                 return {"ok": True, "count": len(prospects), "prospects": prospects}

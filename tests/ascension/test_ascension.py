@@ -557,4 +557,113 @@ async def test_global_discovery_and_non_india_city_without_country_lock(
     global_res = await query_public_colleges_and_hostels("Global", limit=4)
     assert global_res["ok"] is True
     assert global_res["count"] == 4
-    assert len({p["city"] for p in global_res["prospects"]}) >= 2
+    assert len({p["city"] for p in global_res["prospects"]}) == 4
+
+    eu_res = await query_public_colleges_and_hostels("europe", limit=4)
+    assert eu_res["ok"] is True
+    assert {p["city"] for p in eu_res["prospects"]} == {"London", "Berlin", "Amsterdam", "Dublin"}
+
+
+@pytest.mark.asyncio
+async def test_paperclip_blueprint_heartbeat_and_issue_sync(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = TestClient(app)
+
+    status_resp = client.get("/api/v1/paperclip/status")
+    assert status_resp.status_code == 200
+    assert status_resp.json()["adapter_type"] == "http"
+    assert "europe" in status_resp.json()["campaigns"]
+
+    bp_resp = client.get("/api/v1/paperclip/blueprint")
+    assert bp_resp.status_code == 200
+    bp = bp_resp.json()
+    assert bp["schema"] == "paperclip.company.blueprint.v1"
+    assert len(bp["agents"]) == 5
+    assert len(bp["routines"]) == 6
+    assert bp["zeroCostPolicy"]["budgetMonthlyCents"] == 0
+
+    from ascension.backend.api.app import runtime
+
+    posted_requests: list[tuple[str, dict, dict]] = []
+
+    async def fake_run_workflow(**kwargs):
+        return {
+            "thread_id": kwargs["thread_id"],
+            "status": "completed",
+            "pipeline_output": {
+                "market_provider": "groq",
+                "discovery_ok": True,
+                "qualified_leads": [
+                    {
+                        "organisation_name": "Imperial Hall London",
+                        "city": "London, United Kingdom",
+                        "category": "hostel",
+                        "source_ref": "https://www.openstreetmap.org/way/998877",
+                        "homs_score": 84,
+                        "priority": "HIGH",
+                        "recommended_product": "ZenLyft HOMS (₹35,000)",
+                    }
+                ],
+                "pending_outreach_drafts": [
+                    {
+                        "organisation_name": "Imperial Hall London",
+                        "approval_hash": "abc123",
+                        "draft_message": "Verified draft",
+                    }
+                ],
+            },
+        }
+
+    class FakeHttpResp:
+        def __init__(self, data):
+            self._data = data
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._data
+
+    class FakeHttpClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, url, **kwargs):
+            posted_requests.append(("POST", {"url": url, "headers": kwargs.get("headers")}, kwargs.get("json")))
+            return FakeHttpResp({"id": "issue-1", "identifier": "ZEN-1"})
+
+        async def patch(self, url, **kwargs):
+            posted_requests.append(("PATCH", {"url": url, "headers": kwargs.get("headers")}, kwargs.get("json")))
+            return FakeHttpResp({"id": "issue-parent"})
+
+    monkeypatch.setattr(runtime.control_plane, "start_homs_workflow", fake_run_workflow)
+    monkeypatch.setattr(runtime.settings, "paperclip_api_url", "https://paperclip.example.com")
+    monkeypatch.setattr(runtime.settings, "paperclip_company_id", "comp-global-1")
+    monkeypatch.setattr(runtime.settings, "paperclip_api_key", "pc-agent-key")
+    monkeypatch.setattr("ascension.integrations.paperclip.bridge.httpx.AsyncClient", FakeHttpClient)
+
+    hb = client.post(
+        "/api/v1/paperclip/heartbeat",
+        json={
+            "runId": "run_global_42",
+            "agentId": "asc-01",
+            "companyId": "comp-global-1",
+            "region": "europe",
+            "context": {"taskId": "task-parent-1", "wakeReason": "routine_schedule"},
+        },
+    )
+    assert hb.status_code == 200
+    body = hb.json()
+    assert body["paperclip"]["issue_sync"]["pushed"] is True
+    assert body["paperclip"]["issue_sync"]["created_count"] == 1
+    assert posted_requests[0][0] == "POST"
+    assert posted_requests[0][1]["headers"]["X-Paperclip-Run-Id"] == "run_global_42"
+    assert posted_requests[1][0] == "PATCH"
+    assert "task-parent-1" in posted_requests[1][1]["url"]

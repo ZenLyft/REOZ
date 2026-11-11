@@ -24,6 +24,10 @@ from ascension.integrations.langgraph.control_plane import ZenLyftControlPlane, 
 from ascension.integrations.llm_providers.gateway import UnifiedLLMGateway
 from ascension.integrations.n8n.bridge import N8NAutomationBridge
 from ascension.integrations.orchester.adapter import OrchesterProtocolAdapter
+from ascension.integrations.paperclip.bridge import (
+    PaperclipBridge,
+    PaperclipHeartbeatPayload,
+)
 from ascension.memory.store import MemoryPoisoningError, SharedMemoryStore
 from ascension.orchestration.task_router.router import TaskRouter
 from ascension.workforce.registry.catalog import ConcurrencyLimitError, UnifiedAgentRegistry
@@ -49,6 +53,7 @@ class AscensionRuntime:
             orchester=self.orchester,
         )
         self.n8n = N8NAutomationBridge()
+        self.paperclip = PaperclipBridge(settings=self.settings, registry=self.registry)
         self.control_plane = ZenLyftControlPlane(
             router=self.router,
             crew_factory=self.crew_factory,
@@ -124,6 +129,7 @@ async def health() -> dict[str, Any]:
         "kill_switch": runtime.kill_switch.status(),
         "workforce": runtime.registry.org_summary(),
         "orchester": runtime.orchester.capabilities(),
+        "paperclip": runtime.paperclip.status(),
         "providers": runtime.gateway.configured_providers(),
     }
 
@@ -273,7 +279,99 @@ async def n8n_webhook_ingress(
         return await runtime.control_plane.start_homs_workflow(
             thread_id=f"n8n_{uuid4().hex[:10]}",
             objective="Scheduled HOMS institutional discovery & qualification",
-            city=str(payload.get("city") or "Coimbatore"),
+            city=str(payload.get("city") or "Global"),
             limit=int(payload.get("limit") or 5),
         )
     return {"accepted": True, "action": action}
+
+
+@app.get("/api/v1/paperclip/status")
+async def paperclip_status(request: Request) -> dict[str, Any]:
+    public_url = str(request.base_url).rstrip("/")
+    return runtime.paperclip.status(public_base_url=public_url)
+
+
+@app.get("/api/v1/paperclip/blueprint")
+async def paperclip_blueprint(request: Request) -> dict[str, Any]:
+    public_url = str(request.base_url).rstrip("/")
+    return runtime.paperclip.build_global_blueprint(public_base_url=public_url)
+
+
+@app.post("/api/v1/paperclip/sync", dependencies=[Depends(_require_api_auth)])
+async def paperclip_sync(request: Request) -> dict[str, Any]:
+    public_url = str(request.base_url).rstrip("/")
+    return await runtime.paperclip.sync_blueprint_to_server(public_base_url=public_url)
+
+
+@app.post("/api/v1/paperclip/heartbeat")
+async def paperclip_heartbeat(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_paperclip_signature: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Official Paperclip HTTP adapter heartbeat ingress for autonomous global client acquisition."""
+    raw_body = await request.body()
+    if not runtime.paperclip.verify_inbound_secret(raw_body, authorization, x_paperclip_signature):
+        raise HTTPException(status_code=401, detail="Invalid Paperclip webhook credentials")
+
+    payload = PaperclipHeartbeatPayload.model_validate_json(raw_body or b"{}")
+    region = payload.region or str(payload.context.get("region") or "global")
+    explicit_city = payload.city or payload.context.get("city")
+    hubs = runtime.paperclip.resolve_region_hubs(region, str(explicit_city) if explicit_city else None)
+    target_city = (
+        str(explicit_city).strip()
+        if explicit_city and str(explicit_city).strip().lower() not in {"global", "world", "worldwide", "all"}
+        else region
+    )
+    objective = (
+        payload.objective
+        or str(payload.context.get("objective") or "")
+        or f"Discover & qualify global clients ({region}: {', '.join(hubs[:4])}) for ZenLyft HOMS & Digital Systems"
+    )
+    thread_id = f"pc_{payload.runId or uuid4().hex[:10]}"
+
+    try:
+        workflow_res = await runtime.control_plane.start_homs_workflow(
+            thread_id=thread_id,
+            objective=objective,
+            city=target_city,
+            limit=payload.limit,
+        )
+    except KillSwitchEngagedError as exc:
+        raise HTTPException(status_code=423, detail=str(exc)) from exc
+
+    pipe = workflow_res.get("pipeline_output") or {}
+    qualified = pipe.get("qualified_leads") or []
+    drafts = pipe.get("pending_outreach_drafts") or []
+
+    issue_sync = await runtime.paperclip.push_qualified_leads_as_issues(
+        qualified_leads=qualified,
+        drafts=drafts,
+        company_id=payload.companyId,
+        parent_task_id=str(payload.context.get("taskId") or ""),
+        run_id=payload.runId,
+    )
+    task_id = str(payload.context.get("taskId") or "")
+    if task_id:
+        summary = (
+            f"ZenLyft Ascension completed sweep (`{target_city}` / `{region}`): "
+            f"**{len(qualified)} qualified global leads**, `{pipe.get('market_provider')}` provider, "
+            f"`discovery_ok={pipe.get('discovery_ok')}`."
+        )
+        await runtime.paperclip.report_heartbeat_outcome(
+            task_id=task_id,
+            summary_markdown=summary,
+            run_id=payload.runId,
+        )
+
+    return {
+        **workflow_res,
+        "paperclip": {
+            "runId": payload.runId,
+            "agentId": payload.agentId,
+            "companyId": payload.companyId,
+            "region": region,
+            "target_hubs": hubs,
+            "issue_sync": issue_sync,
+        },
+    }

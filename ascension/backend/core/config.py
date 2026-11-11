@@ -51,6 +51,11 @@ class AscensionSettings(BaseSettings):
     n8n_outbound_webhook_url: str = Field(default="", alias="N8N_OUTBOUND_WEBHOOK_URL")
     orchester_url: str = Field(default="", alias="ORCHESTER_URL")
     orchester_api_key: str = Field(default="", alias="ORCHESTER_API_KEY")
+    paperclip_api_url: str = Field(default="", alias="PAPERCLIP_API_URL")
+    paperclip_api_key: str = Field(default="", alias="PAPERCLIP_API_KEY")
+    paperclip_company_id: str = Field(default="", alias="PAPERCLIP_COMPANY_ID")
+    paperclip_webhook_secret: str = Field(default="", alias="PAPERCLIP_WEBHOOK_SECRET")
+    ascension_public_url: str = Field(default="", alias="ASCENSION_PUBLIC_URL")
     allow_private_http: bool = Field(default=False, alias="ALLOW_PRIVATE_HTTP")
 
 

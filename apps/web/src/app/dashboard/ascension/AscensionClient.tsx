@@ -27,6 +27,15 @@ interface AscensionStatusPayload {
     kill_switch?: { engaged: boolean; reason?: string };
     workforce?: { total_roles: number; active_count: number; max_concurrent_active: number };
     orchester?: { mode: string; flow_execution_delegated_to: string };
+    paperclip?: {
+      enabled?: boolean;
+      connected?: boolean;
+      mode?: string;
+      api_url?: string | null;
+      company_id?: string | null;
+      heartbeat_endpoint?: string;
+      campaigns?: Record<string, { label: string; hubs: string[]; cron: string; timezone: string }>;
+    };
     providers?: ProviderInfo[];
   };
   registry?: {
@@ -78,9 +87,11 @@ export default function AscensionClient() {
   const [data, setData] = useState<AscensionStatusPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState('Global');
+  const [regionCampaign, setRegionCampaign] = useState('global');
   const [objective, setObjective] = useState('Discover & qualify colleges and hostels worldwide for ZenLyft HOMS (₹35,000)');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [lastWorkflowResult, setLastWorkflowResult] = useState<Record<string, unknown> | null>(null);
+  const [paperclipBlueprint, setPaperclipBlueprint] = useState<Record<string, unknown> | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -117,6 +128,58 @@ export default function AscensionClient() {
       }
     } catch {
       setActionMessage('Network error triggering workflow.');
+    }
+  }
+
+  async function runPaperclipCampaign(targetRegion: string) {
+    setRegionCampaign(targetRegion);
+    setActionMessage(`Running Paperclip global sweep (${targetRegion})...`);
+    try {
+      const res = await fetch('/api/ascension/paperclip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'heartbeat',
+          region: targetRegion,
+          objective,
+          limit: 6,
+        }),
+      });
+      const json = await res.json();
+      setLastWorkflowResult(json);
+      if (!res.ok) {
+        setActionMessage(`Paperclip notice: ${json.error || json.detail || 'Error'}`);
+      } else {
+        setActionMessage(`Paperclip sweep (${targetRegion}) -> ${json.thread_id}: ${json.status}`);
+        refresh();
+      }
+    } catch {
+      setActionMessage('Network error triggering Paperclip sweep.');
+    }
+  }
+
+  async function syncPaperclipBlueprint() {
+    setActionMessage('Generating / syncing Paperclip Global Company Blueprint...');
+    try {
+      const res = await fetch('/api/ascension/paperclip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync' }),
+      });
+      const json = await res.json();
+      if (json.blueprint) {
+        setPaperclipBlueprint(json.blueprint);
+      } else {
+        const bpRes = await fetch('/api/ascension/paperclip', { cache: 'no-store' });
+        if (bpRes.ok) setPaperclipBlueprint(await bpRes.json());
+      }
+      setActionMessage(
+        json.synced
+          ? `Synced Paperclip company (${json.company_id}) — ${json.total_blueprint_routines} global routines ready.`
+          : json.reason || 'Paperclip blueprint generated (ready for export).'
+      );
+    } catch {
+      setActionMessage('Failed to sync Paperclip blueprint.');
     }
   }
 
@@ -256,6 +319,72 @@ export default function AscensionClient() {
         {lastWorkflowResult && (
           <pre className="rounded-lg bg-slate-950 p-3 text-xs text-emerald-300 overflow-x-auto">
             {JSON.stringify(lastWorkflowResult, null, 2)}
+          </pre>
+        )}
+      </div>
+
+      {/* Paperclip Worldwide Control Plane & Continental Routines */}
+      <div className="rounded-xl border border-indigo-900/60 bg-slate-900/60 p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Paperclip Worldwide Client Acquisition</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              HTTP Adapter Heartbeat • Org-Chart Goals &amp; Coalescing Continental Routines (<code>paperclipai/paperclip</code>)
+            </p>
+          </div>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              data?.health?.paperclip?.connected
+                ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                : 'bg-indigo-950 text-indigo-300 border border-indigo-700'
+            }`}
+          >
+            {data?.health?.paperclip?.connected ? 'Paperclip Server: CONNECTED' : 'Paperclip HTTP Adapter: READY'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {Object.entries(data?.health?.paperclip?.campaigns || {}).map(([key, camp]) => (
+            <div
+              key={key}
+              className={`rounded-lg border p-3 transition ${
+                regionCampaign === key
+                  ? 'border-indigo-500 bg-indigo-950/30'
+                  : 'border-slate-800 bg-slate-950/70'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-white">{camp.label}</span>
+                <span className="text-[10px] font-mono text-slate-400">{camp.cron}</span>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">Hubs: {camp.hubs.join(', ')}</div>
+              <button
+                onClick={() => runPaperclipCampaign(key)}
+                disabled={conn !== 'CONNECTED'}
+                className="mt-3 w-full rounded bg-slate-800 hover:bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+              >
+                Run Heartbeat Sweep
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={syncPaperclipBlueprint}
+            disabled={conn !== 'CONNECTED'}
+            className="rounded-lg border border-indigo-600 bg-indigo-950/50 px-4 py-2 text-xs font-medium text-indigo-200 hover:bg-indigo-900/60 disabled:opacity-50"
+          >
+            Sync / Preview Paperclip Company Blueprint
+          </button>
+          <span className="text-xs text-slate-400">
+            Heartbeat Webhook: <code>{data?.health?.paperclip?.heartbeat_endpoint || '/api/v1/paperclip/heartbeat'}</code>
+          </span>
+        </div>
+
+        {paperclipBlueprint && (
+          <pre className="rounded-lg bg-slate-950 p-3 text-xs text-indigo-200 overflow-x-auto max-h-72">
+            {JSON.stringify(paperclipBlueprint, null, 2)}
           </pre>
         )}
       </div>
