@@ -228,6 +228,7 @@ class ZenLyftSpecialistCrewFactory:
             "orchestrator": ceo.agent_id,
             "market_brief": research_res.content,
             "market_provider": research_res.provider,
+            "market_error": research_res.error,
             "discovery_ok": discovery_ok,
             "discovery_error": discovery_error,
             "qualified_count": len(qualified_leads),

@@ -101,13 +101,13 @@ async def generate_followup_draft(
     """Uses Groq / Gemini AI gateway to draft personalized follow-up."""
     org_name = lead.get("organisation_name", "your business")
     category = lead.get("category", "General")
-    location = lead.get("location", "India")
+    location = lead.get("location", "Global")
 
     system_prompt = (
         "You are ZenLyft's Senior SDR and Client Success Coordinator. "
         "Draft a short, natural, respectful WhatsApp follow-up message. "
         "Strict rules: Under 50 words. No fake urgency. No fabricated claims. "
-        "Be specific to Tamil Nadu / Indian business context. Respectful tone."
+        f"Adapt naturally to the organization's local market ({location}). Respectful tone."
     )
 
     stage_prompts = {

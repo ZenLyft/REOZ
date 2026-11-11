@@ -25,7 +25,7 @@ FOLLOW_UP_CADENCE = [
         "template": (
             "Hi {organisation_name} team,\n\n"
             "Following up on our note regarding your online customer experience. "
-            "Local service businesses and academies in Tamil Nadu that upgraded to mobile-first "
+            "Local service businesses and academies worldwide that upgraded to mobile-first "
             "WhatsApp booking saw up to a 3x increase in weekly customer inquiries without spending on ads.\n\n"
             "Would you be open to a quick 3-minute video showing how this could work for {organisation_name}?\n\n"
             "Best regards,\nNiresh Senthoor\nFounder & CEO, ZenLyft\nniresh@zenlyft.in"

@@ -23,7 +23,7 @@ export async function GET() {
     // 3. Fetch real follow-up drafts awaiting approval
     const { data: followups } = await supabase
       .from('whatsapp_followups')
-      .select('*, leads(organisation_name, location, category, score)')
+      .select('*, leads(organisation_name, location, category, score, public_phone)')
       .order('created_at', { ascending: false });
 
     // 4. Calculate real metrics

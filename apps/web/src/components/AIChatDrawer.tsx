@@ -9,7 +9,7 @@ export function AIChatDrawer() {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
     {
       role: 'assistant',
-      text: 'Vanakkam Niresh! I am your REOZ Chief AI Orchestrator.\n\nYou can tell me commands like:\n• *"Find 20 restaurants in Tiruppur that need websites"*\n• *"Discover engineering colleges in Coimbatore"*\n• *"Show my top qualified leads"*\n• *"What is my revenue pipeline?"*',
+      text: 'Welcome Niresh! I am your REOZ Chief AI Orchestrator (Global Mode).\n\nYou can tell me commands like:\n• *"Find 20 colleges or hotels in London, Dubai, or Singapore"*\n• *"Discover hostels worldwide for ZenLyft HOMS"*\n• *"Show my top qualified leads"*\n• *"What is my revenue pipeline?"*',
     },
   ]);
 

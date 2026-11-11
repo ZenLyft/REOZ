@@ -28,6 +28,7 @@ from ascension.backend.models.schemas import (
 from ascension.business.homs_acquisition import (
     build_approved_homs_outreach_draft,
     qualify_homs_institution,
+    query_public_colleges_and_hostels,
 )
 from ascension.integrations.crewai.bridge import ZenLyftSpecialistCrewFactory
 from ascension.integrations.langgraph.control_plane import (
@@ -423,3 +424,137 @@ def test_homs_scoring_hmac_webhook_and_fastapi_surface() -> None:
     body = res.json()
     assert body["workforce"]["total_roles"] == 59
     assert body["allow_paid_fallback"] is False
+
+
+@pytest.mark.asyncio
+async def test_gateway_fallback_uses_target_provider_model_and_nominatim_osm_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ks = KillSwitchController()
+    gw = UnifiedLLMGateway(kill_switch=ks)
+    gw.settings.gemini_api_key = "fake-gemini-key"
+    gw.settings.groq_api_key = "fake-groq-key"
+
+    invoked: list[tuple[str, str]] = []
+
+    async def fake_invoke(desc, model_name, _messages, _timeout):
+        invoked.append((desc.name, model_name))
+        if desc.name == "gemini":
+            raise RuntimeError("429 quota exceeded")
+        return GatewayResult(provider=desc.name, model=model_name, content="fallback ok")
+
+    monkeypatch.setattr(gw, "_invoke_provider", fake_invoke)
+    res = await gw.generate(
+        messages=[{"role": "user", "content": "Hello"}],
+        preferred_provider="gemini",
+        model="gemini-flash-lite-latest",
+    )
+    assert res.provider == "groq"
+    assert res.model == "qwen/qwen3.8-27b"
+    assert invoked == [("gemini", "gemini-flash-lite-latest"), ("groq", "qwen/qwen3.8-27b")]
+
+    class FakeResp:
+        def __init__(self, status_code: int, payload):
+            self.status_code = status_code
+            self._payload = payload
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise RuntimeError(f"HTTP {self.status_code}")
+
+        def json(self):
+            return self._payload
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return FakeResp(406, {})
+
+        async def get(self, url, **kwargs):
+            return FakeResp(
+                200,
+                [
+                    {
+                        "name": "PSG College of Technology",
+                        "type": "college",
+                        "osm_type": "way",
+                        "osm_id": 123456,
+                        "extratags": {"website": "https://www.psgtech.edu"},
+                    }
+                ],
+            )
+
+    monkeypatch.setattr("ascension.business.homs_acquisition.httpx.AsyncClient", FakeClient)
+    osm = await query_public_colleges_and_hostels("Coimbatore", limit=3)
+    assert osm["ok"] is True
+    assert osm["prospects"][0]["organisation_name"] == "PSG College of Technology"
+    assert osm["prospects"][0]["source_type"] == "openstreetmap_nominatim"
+
+
+@pytest.mark.asyncio
+async def test_global_discovery_and_non_india_city_without_country_lock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_queries: list[str] = []
+
+    class FakeResp:
+        def __init__(self, payload):
+            self.status_code = 200
+            self._payload = payload
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._payload
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, *args, **kwargs):
+            resp = FakeResp({})
+            resp.status_code = 406
+            return resp
+
+        async def get(self, url, **kwargs):
+            q = (kwargs.get("params") or {}).get("q", "")
+            requested_queries.append(q)
+            hub = q.split(" ", 1)[-1] if " " in q else "Tokyo"
+            return FakeResp(
+                [
+                    {
+                        "name": f"Global Campus {hub}",
+                        "type": "college",
+                        "osm_type": "way",
+                        "osm_id": abs(hash(q)) % 1000000 + 1,
+                        "display_name": f"Global Campus {hub}, {hub}",
+                        "extratags": {},
+                    }
+                ]
+            )
+
+    monkeypatch.setattr("ascension.business.homs_acquisition.httpx.AsyncClient", FakeClient)
+
+    tokyo = await query_public_colleges_and_hostels("Tokyo", limit=3)
+    assert tokyo["ok"] is True
+    assert any("Tokyo" in q and "India" not in q for q in requested_queries)
+
+    global_res = await query_public_colleges_and_hostels("Global", limit=4)
+    assert global_res["ok"] is True
+    assert global_res["count"] == 4
+    assert len({p["city"] for p in global_res["prospects"]}) >= 2

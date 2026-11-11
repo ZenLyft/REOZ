@@ -77,7 +77,7 @@ AGENTS_REGISTRY: dict[str, AgentDefinition] = {
         provider="deterministic",
         model="osm-nominatim-engine",
         responsibilities=[
-            "Search target cities (Coimbatore, Tiruppur, Erode, Chennai)",
+            "Search global target hubs (London, Dubai, Singapore, New York, Bengaluru, Tokyo, etc.)",
             "Extract business names, categories, and coordinates",
             "Deduplicate records against existing CRM database",
             "Enforce source attribution and timestamps",
@@ -287,7 +287,7 @@ async def execute_agent_task(
         result_data = res.parsed_json or {"raw": res.content}
 
     elif agent_id == "agent-09":  # SDR Outreach
-        prompt = f"Create Day 0 outreach for '{payload.get('organisation_name')}' offering package '{payload.get('package_name', 'Starter Showcase')}'. Highlight 1 local Tamil Nadu benefit."
+        prompt = f"Create Day 0 outreach for '{payload.get('organisation_name')}' offering package '{payload.get('package_name', 'Starter Showcase')}'. Highlight 1 practical local benefit tailored to its region."
         res = await gateway.generate(
             system_prompt="You are Agent 09: Sales Development Assistant. Output JSON with: channel, recipient, subject, message_body.",
             user_prompt=prompt,

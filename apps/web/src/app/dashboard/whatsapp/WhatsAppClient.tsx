@@ -25,6 +25,7 @@ interface FollowupDraft {
     location: string;
     category: string;
     score: number;
+    public_phone?: string | null;
   };
 }
 
@@ -89,6 +90,12 @@ export function WhatsAppClient() {
   }
 
   async function handleApproveFollowup(draft: FollowupDraft) {
+    const recipientNumber = draft.leads?.public_phone?.trim();
+    if (!recipientNumber) {
+      setActionNotice({ type: 'error', text: 'No verified phone number recorded for this lead yet.' });
+      return;
+    }
+
     setIsSending(true);
     setActionNotice(null);
 
@@ -98,7 +105,7 @@ export function WhatsAppClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: draft.lead_id,
-          recipientNumber: '919842200000', // Targeted business contact
+          recipientNumber,
           text: draft.notes,
         }),
       });
@@ -144,7 +151,7 @@ export function WhatsAppClient() {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-400 max-w-2xl">
-            Live integration connected to Supabase database. Real AI follow-up cadence, HMAC signature verification, and Founder 1-tap approval queue.
+            Official Line: +91 80159 29139 • Live integration connected to Supabase database. Real AI follow-up cadence, HMAC signature verification, and Founder 1-tap approval queue.
           </p>
         </div>
 
@@ -289,7 +296,7 @@ export function WhatsAppClient() {
 
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-slate-400">
-                        {f.leads?.location || 'Tamil Nadu, India'}
+                        {f.leads?.location || 'Global'}
                       </span>
                       {f.leads?.score && (
                         <span className="text-[9px] font-bold text-indigo-400">
@@ -322,7 +329,7 @@ export function WhatsAppClient() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
-                  Location: {activeFollowup.leads?.location || 'Tamil Nadu'} • Category: {activeFollowup.leads?.category || 'Healthcare / Enterprise'}
+                  Location: {activeFollowup.leads?.location || 'Global'} • Category: {activeFollowup.leads?.category || 'Healthcare / Enterprise'}
                 </p>
               </div>
 
@@ -375,7 +382,7 @@ export function WhatsAppClient() {
               <div className="mt-auto bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
                 <p className="font-semibold text-slate-300">Why this data is 100% real:</p>
                 <p>
-                  • These 10 leads were discovered from physical establishments in Tamil Nadu via OpenStreetMap.
+                  • These 10 leads were discovered from verified establishments worldwide via OpenStreetMap.
                 </p>
                 <p>
                   • The messages were drafted live by Groq AI and stored directly in your Supabase table (<code className="text-indigo-400">whatsapp_followups</code>).

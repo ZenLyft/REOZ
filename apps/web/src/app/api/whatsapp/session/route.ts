@@ -33,11 +33,12 @@ export async function GET(_req: NextRequest) {
     }
 
     // Update local database record
+    const activePhone = sessionInfo?.phone || config.businessPhone;
     await supabase.from('whatsapp_sessions').upsert({
       id: config.sessionId,
       name: 'ZenLyft Business Acquisition (Dedicated)',
       status: emergencyStop ? 'emergency_stopped' : status,
-      phone: sessionInfo?.phone || null,
+      phone: activePhone,
       push_name: sessionInfo?.pushName || null,
       qr_code: qrCode,
       engine: 'baileys',
@@ -50,7 +51,7 @@ export async function GET(_req: NextRequest) {
       success: true,
       sessionId: config.sessionId,
       status: emergencyStop ? 'emergency_stopped' : status,
-      phone: sessionInfo?.phone || null,
+      phone: activePhone,
       pushName: sessionInfo?.pushName || null,
       qrCode,
       emergencyStopActive: emergencyStop,

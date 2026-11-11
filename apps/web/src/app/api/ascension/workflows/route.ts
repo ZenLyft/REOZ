@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       headers,
       body: JSON.stringify({
         objective: String(body.objective || 'Discover & qualify HOMS institutional leads'),
-        city: String(body.city || 'Coimbatore'),
+        city: String(body.city || 'Global'),
         limit: Number(body.limit || 5),
       }),
     });

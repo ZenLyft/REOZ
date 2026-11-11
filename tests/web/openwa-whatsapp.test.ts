@@ -123,4 +123,15 @@ describe('Founder 1-Tap Cryptographic Approval Gate', () => {
     const wrongRecipient = '919999999999';
     expect(verifyDraftHash(draft, wrongRecipient, hash)).toBe(false);
   });
+
+  it('defaults ZenLyft official WhatsApp business line to 918015929139', async () => {
+    const { getOpenWAConfig } = await import('@/lib/integrations/openwa-client');
+    const prev = process.env.OPENWA_BUSINESS_PHONE;
+    delete process.env.OPENWA_BUSINESS_PHONE;
+    try {
+      expect(getOpenWAConfig().businessPhone).toBe('918015929139');
+    } finally {
+      if (prev !== undefined) process.env.OPENWA_BUSINESS_PHONE = prev;
+    }
+  });
 });

@@ -224,18 +224,13 @@ def score_local_business_website_opportunity(
     total_score += 15
 
     # 7. Geographic & Implementation Fit (Max 10)
-    if (
-        "india" in location.lower()
-        or "tamil nadu" in location.lower()
-        or "coimbatore" in location.lower()
-        or "chennai" in location.lower()
-    ):
+    if location.strip():
         breakdown.append(
             ScoreBreakdown(
                 category="Geographic Fit",
                 points_awarded=10,
                 max_points=10,
-                rationale="Target territory match.",
+                rationale="Global digital delivery scope — remote deployment ready worldwide.",
                 basis="declared",
             )
         )
@@ -244,13 +239,13 @@ def score_local_business_website_opportunity(
         breakdown.append(
             ScoreBreakdown(
                 category="Geographic Fit",
-                points_awarded=7,
+                points_awarded=8,
                 max_points=10,
-                rationale="Pan-India digital delivery scope.",
+                rationale="Global remote delivery scope (region unspecified).",
                 basis="declared",
             )
         )
-        total_score += 7
+        total_score += 8
 
     # Confidence calculation
     confidence = (

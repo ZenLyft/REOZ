@@ -77,8 +77,8 @@ interface AscensionStatusPayload {
 export default function AscensionClient() {
   const [data, setData] = useState<AscensionStatusPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [city, setCity] = useState('Coimbatore');
-  const [objective, setObjective] = useState('Discover & qualify colleges and hostels for ZenLyft HOMS (₹35,000)');
+  const [city, setCity] = useState('Global');
+  const [objective, setObjective] = useState('Discover & qualify colleges and hostels worldwide for ZenLyft HOMS (₹35,000)');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [lastWorkflowResult, setLastWorkflowResult] = useState<Record<string, unknown> | null>(null);
 
@@ -227,7 +227,7 @@ export default function AscensionClient() {
           <input
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="Target Indian City (e.g. Coimbatore)"
+            placeholder="Region: Global or Any City/Country (e.g. Global, London, Dubai, Tokyo)"
             className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
           />
           <input

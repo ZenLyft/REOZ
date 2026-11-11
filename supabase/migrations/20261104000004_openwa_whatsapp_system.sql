@@ -21,9 +21,9 @@ create table if not exists public.whatsapp_sessions (
 );
 
 -- Seed default dedicated business test session
-insert into public.whatsapp_sessions (id, name, status, engine, is_active)
-values ('zenlyft-wa-01', 'ZenLyft Business Acquisition (Dedicated)', 'created', 'baileys', true)
-on conflict (id) do nothing;
+insert into public.whatsapp_sessions (id, name, status, phone, engine, is_active)
+values ('zenlyft-wa-01', 'ZenLyft Business Acquisition (Dedicated)', 'created', '+91 80159 29139', 'baileys', true)
+on conflict (id) do update set phone = coalesce(public.whatsapp_sessions.phone, excluded.phone);
 
 -- 2. WhatsApp Messages & Conversations
 create table if not exists public.whatsapp_messages (

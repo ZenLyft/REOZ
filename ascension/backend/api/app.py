@@ -86,7 +86,7 @@ def _require_api_auth(authorization: str | None = Header(default=None)) -> None:
 class RunWorkflowRequest(BaseModel):
     thread_id: str | None = None
     objective: str = Field(..., min_length=5)
-    city: str = Field(default="Coimbatore", min_length=2)
+    city: str = Field(default="Global", min_length=2)
     limit: int = Field(default=5, ge=1, le=20)
     supplied_prospects: list[dict[str, Any]] | None = None
 

@@ -165,6 +165,7 @@ export interface OpenWAConfig {
   baseUrl: string;
   apiKey: string;
   sessionId: string;
+  businessPhone: string;
   webhookSecret?: string;
 }
 
@@ -216,12 +217,16 @@ export function getOpenWAConfig(): OpenWAConfig {
 
   const apiKey = process.env.OPENWA_API_KEY || '';
   const sessionId = process.env.OPENWA_SESSION_ID || 'zenlyft-wa-01';
+  const businessPhone = (process.env.OPENWA_BUSINESS_PHONE || '+91 80159 29139')
+    .replace(/\D/g, '')
+    .replace(/^0+/, '');
   const webhookSecret = process.env.OPENWA_WEBHOOK_SECRET || 'zenlyft-openwa-secure-secret-2026';
 
   return {
     baseUrl,
     apiKey,
     sessionId,
+    businessPhone,
     webhookSecret,
   };
 }

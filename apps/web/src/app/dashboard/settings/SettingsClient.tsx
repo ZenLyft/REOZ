@@ -7,7 +7,7 @@ export function SettingsClient() {
   const [emergencyStop, setEmergencyStop] = useState<boolean>(false);
   const [weeklyLeadTarget, setWeeklyLeadTarget] = useState<number>(100);
   const [weeklyOnboardTarget, setWeeklyOnboardTarget] = useState<number>(10);
-  const [activeMarket, setActiveMarket] = useState<string>('Tamil Nadu, India');
+  const [activeMarket, setActiveMarket] = useState<string>('Global (Worldwide)');
   const [isSavedAlert, setIsSavedAlert] = useState<boolean>(false);
 
   function handleSave() {
@@ -192,7 +192,7 @@ export function SettingsClient() {
               onChange={(e) => setActiveMarket(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-zinc-200 focus:border-indigo-500 focus:outline-none"
             />
-            <span className="mt-1 block text-[10px] text-zinc-500">Baseline: Tamil Nadu (Tiruppur, Erode, Coimbatore)</span>
+            <span className="mt-1 block text-[10px] text-zinc-500">Coverage: Worldwide across all continents (e.g. Global, India, UK, UAE, USA, Singapore)</span>
           </div>
         </div>
 

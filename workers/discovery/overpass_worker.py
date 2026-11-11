@@ -17,14 +17,18 @@ from workers.scoring.engine import score_local_business_website_opportunity
 OVERPASS_API_URL = "https://overpass-api.de/api/interpreter"
 NOMINATIM_API_URL = "https://nominatim.openstreetmap.org/search"
 
-# Target cities across India
+# Target cities worldwide (all continents)
 TARGET_CITIES = [
-    {"name": "Coimbatore", "lat": 11.0168, "lon": 76.9558, "radius": 15000},
-    {"name": "Tiruppur", "lat": 11.1085, "lon": 77.3411, "radius": 15000},
-    {"name": "Erode", "lat": 11.3410, "lon": 77.7172, "radius": 15000},
-    {"name": "Salem", "lat": 11.6643, "lon": 78.1460, "radius": 12000},
-    {"name": "Chennai", "lat": 13.0827, "lon": 80.2707, "radius": 15000},
-    {"name": "Madurai", "lat": 9.9252, "lon": 78.1198, "radius": 12000},
+    {"name": "Coimbatore", "country": "India", "lat": 11.0168, "lon": 76.9558, "radius": 15000},
+    {"name": "Bengaluru", "country": "India", "lat": 12.9716, "lon": 77.5946, "radius": 15000},
+    {"name": "Singapore", "country": "Singapore", "lat": 1.3521, "lon": 103.8198, "radius": 15000},
+    {"name": "Dubai", "country": "UAE", "lat": 25.2048, "lon": 55.2708, "radius": 15000},
+    {"name": "London", "country": "UK", "lat": 51.5074, "lon": -0.1278, "radius": 15000},
+    {"name": "New York", "country": "USA", "lat": 40.7128, "lon": -74.0060, "radius": 15000},
+    {"name": "Toronto", "country": "Canada", "lat": 43.6532, "lon": -79.3832, "radius": 15000},
+    {"name": "Berlin", "country": "Germany", "lat": 52.5200, "lon": 13.4050, "radius": 15000},
+    {"name": "Tokyo", "country": "Japan", "lat": 35.6762, "lon": 139.6503, "radius": 15000},
+    {"name": "Sydney", "country": "Australia", "lat": -33.8688, "lon": 151.2093, "radius": 15000},
 ]
 
 # High-converting categories for websites, booking engines, and automation
@@ -197,11 +201,12 @@ async def run_discovery_pipeline(max_leads_per_run: int = 10):
                         else "Physical business verified in OpenStreetMap registry with no discoverable website."
                     )
 
+                    location_label = f"{city['name']}, {city.get('country', 'Global')}"
                     # Calculate deterministic heuristic score
                     lead_dict = {
                         "organisation_name": raw_name,
                         "category": category_label,
-                        "location": f"{city['name']}, India",
+                        "location": location_label,
                         "website_url": website,
                         "website_status": website_status,
                         "phone": clean_phone,
@@ -217,7 +222,7 @@ async def run_discovery_pipeline(max_leads_per_run: int = 10):
                         if "Education" in category_label
                         else "local_business",
                         "category": category_label,
-                        "location": f"{city['name']}, India",
+                        "location": location_label,
                         "website_url": website,
                         "website_status": website_status,
                         "service_interest": "Website Design & Booking Automation",

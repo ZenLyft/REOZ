@@ -203,7 +203,8 @@ class UnifiedLLMGateway:
                 errors.append(f"{provider_name}: NOT_CONFIGURED")
                 continue
 
-            chosen_model = model or desc.default_model
+            # Use caller-supplied model only for the preferred provider; fallbacks use their native default.
+            chosen_model = model if (idx == 0 and model) else desc.default_model
             try:
                 result = await self._invoke_provider(desc, chosen_model, messages, timeout_sec)
                 result.fallback_used = idx > 0
