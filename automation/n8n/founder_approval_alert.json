@@ -1,0 +1,32 @@
+{
+  "name": "ZenLyft Ascension - Founder Approval Alert (Telegram)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zenlyft-approval-alert",
+        "responseMode": "lastNode"
+      },
+      "name": "Webhook From Ascension",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$env.FOUNDER_TELEGRAM_CHAT_ID}}",
+        "text": "={{'🛡️ ZenLyft Approval Required\\nThread: ' + $json.data.thread_id + '\\nTarget: ' + $json.data.target_organisation + '\\nHash: ' + $json.data.approval_hash}}"
+      },
+      "name": "Notify Founder on Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [540, 300]
+    }
+  ],
+  "connections": {
+    "Webhook From Ascension": {
+      "main": [[{ "node": "Notify Founder on Telegram", "type": "main", "index": 0 }]]
+    }
+  }
+}
+

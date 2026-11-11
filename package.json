@@ -8,6 +8,9 @@
   "scripts": {
     "dev": "npm run dev --workspace=@zenlyft/web",
     "build": "npm run build --workspace=@zenlyft/web",
+    "cf:build": "npm run cf:build --workspace=@zenlyft/web",
+    "cf:deploy": "npm run cf:deploy --workspace=@zenlyft/web",
+    "cf:upload": "npm run cf:upload --workspace=@zenlyft/web",
     "lint": "npm run lint --workspace=@zenlyft/web",
     "test": "npm run test --workspace=@zenlyft/web"
   }

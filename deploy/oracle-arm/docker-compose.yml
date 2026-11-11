@@ -1,0 +1,50 @@
+# Optional All-in-One 24/7 Self-Hosted Bundle for Oracle Cloud Always Free (4 ARM OCPUs / 24 GB RAM)
+# Zero charges on OCI Always Free ARM VM. Connects persistent Supabase Postgres or local pgvector.
+services:
+  zenlyft-ascension-api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.ascension
+    container_name: zenlyft-ascension-api
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      PORT: "7860"
+      ASCENSION_ENV: "oracle-always-free"
+      ALLOW_PAID_FALLBACK: "false"
+      ASCENSION_MAX_CONCURRENT_AGENTS: "5"
+      ASCENSION_DATABASE_URL: "${ASCENSION_DATABASE_URL}"
+      NEXT_PUBLIC_SUPABASE_URL: "${NEXT_PUBLIC_SUPABASE_URL}"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"
+      GROQ_API_KEY: "${GROQ_API_KEY}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      KIMI_API_KEY: "${KIMI_API_KEY:-}"
+      GLM_API_KEY: "${GLM_API_KEY:-}"
+      ASCENSION_API_SECRET: "${ASCENSION_API_SECRET}"
+      N8N_WEBHOOK_SECRET: "${N8N_WEBHOOK_SECRET}"
+      N8N_OUTBOUND_WEBHOOK_URL: "http://n8n:5678/webhook/zenlyft-approval-alert"
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: zenlyft-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: "${N8N_HOST:-localhost}"
+      N8N_PORT: "5678"
+      GENERIC_TIMEZONE: "Asia/Kolkata"
+      TZ: "Asia/Kolkata"
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"
+      ASCENSION_API_URL: "http://zenlyft-ascension-api:7860"
+      FOUNDER_TELEGRAM_CHAT_ID: "${FOUNDER_TELEGRAM_CHAT_ID:-}"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../../automation/n8n:/home/node/zenlyft-workflows:ro
+
+volumes:
+  n8n_data:
+

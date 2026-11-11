@@ -1,0 +1,36 @@
+# Multi-stage Dockerfile for 24/7 Free Cloud Hosting (Hugging Face Spaces Port 7860 / Oracle ARM / Cloud Run)
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=7860 \
+    HOME=/home/user \
+    PYTHONPATH=/app
+
+RUN useradd -m -u 1000 user
+WORKDIR /app
+
+# Install system build deps cleanly without apt cache bloat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ascension/requirements.txt /app/ascension/requirements.txt
+RUN pip install --no-cache-dir -r /app/ascension/requirements.txt
+
+# Copy only required Python packages (keep UI / node_modules out of Python image)
+COPY ascension/ /app/ascension/
+COPY workers/ /app/workers/
+COPY docs/THIRD_PARTY_NOTICES.md /app/docs/THIRD_PARTY_NOTICES.md
+
+RUN chown -R user:user /app
+USER user
+
+EXPOSE 7860
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:7860/health || exit 1
+
+CMD ["sh", "-c", "uvicorn ascension.backend.api.app:app --host 0.0.0.0 --port ${PORT:-7860}"]
+

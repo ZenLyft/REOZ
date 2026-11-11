@@ -172,14 +172,14 @@ export interface OpenWASessionInfo {
   id: string;
   name: string;
   status:
-    | 'created'
-    | 'initializing'
-    | 'qr_ready'
-    | 'authenticating'
-    | 'ready'
-    | 'disconnected'
-    | 'action_required'
-    | 'failed';
+  | 'created'
+  | 'initializing'
+  | 'qr_ready'
+  | 'authenticating'
+  | 'ready'
+  | 'disconnected'
+  | 'action_required'
+  | 'failed';
   phone?: string | null;
   pushName?: string | null;
   qrCode?: string | null;

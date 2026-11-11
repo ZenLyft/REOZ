@@ -1,0 +1,22 @@
+name: ZenLyft Ascension 24/7 Cloud Keep-Alive & Discovery
+
+on:
+  schedule:
+    # Keep free cloud container warm (<15m idle window on Render Free / 48h on HF)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive-and-pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Ascension Cloud Health Endpoint
+        env:
+          ASCENSION_API_URL: ${{ secrets.ASCENSION_API_URL }}
+        run: |
+          if [ -z "$ASCENSION_API_URL" ]; then
+            echo "ASCENSION_API_URL not set yet — skipping cloud ping cleanly."
+            exit 0
+          fi
+          curl -fsS --max-time 20 "${ASCENSION_API_URL%/}/health"
+

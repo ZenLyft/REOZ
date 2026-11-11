@@ -1,0 +1,41 @@
+{
+  "name": "ZenLyft Ascension - Scheduled HOMS Institutional Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      },
+      "name": "Every 6 Hours Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.ASCENSION_API_URL}}/api/v1/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-zenlyft-timestamp", "value": "={{$now.toSeconds()}}" },
+            { "name": "x-zenlyft-signature", "value": "={{$json.hmac_signature}}" }
+          ]
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "{\"action\":\"run_homs_discovery\",\"city\":\"Coimbatore\",\"limit\":10}"
+      },
+      "name": "Trigger ZenLyft Ascension LangGraph Control Plane",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours Trigger": {
+      "main": [[{ "node": "Trigger ZenLyft Ascension LangGraph Control Plane", "type": "main", "index": 0 }]]
+    }
+  }
+}
+
