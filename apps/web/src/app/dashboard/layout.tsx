@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { AIChatDrawer } from '@/components/AIChatDrawer';
 import { DesktopNavLinks, MobileBottomNav } from '@/components/DashboardNav';
 import { PwaPushControl } from '@/components/PwaPushControl';
 
@@ -59,9 +58,6 @@ export default async function DashboardLayout({
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-9">
         {children}
       </main>
-
-      {/* Live AI Orchestrator Drawer */}
-      <AIChatDrawer />
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
