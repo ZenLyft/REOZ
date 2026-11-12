@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 export default async function AuditPage() {
   const supabase = createClient();
   const { data: logs, error } = await supabase
-    .from('audit_logs')
+    .from('audit_log')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('timestamp', { ascending: false })
     .limit(50);
 
   return (
@@ -44,18 +44,16 @@ export default async function AuditPage() {
                   logs.map((log) => (
                     <tr key={log.id} className="hover:bg-zinc-800/30 transition text-[11px]">
                       <td className="py-2.5 px-3 text-zinc-400 whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString('en-IN', {
-                          timeZone: 'Asia/Kolkata',
-                          dateStyle: 'short',
-                          timeStyle: 'medium',
-                        })}
+                        {log.timestamp
+                          ? `${new Date(log.timestamp).toISOString().replace('T', ' ').slice(0, 19)} UTC`
+                          : '—'}
                       </td>
                       <td className="py-2.5 px-3 font-semibold text-zinc-100">{log.action}</td>
                       <td className="py-2.5 px-3 text-zinc-400">
-                        <span className="capitalize">{log.actor_type}</span>: {log.actor_id?.slice(0, 8)}...
+                        <span className="capitalize">{log.actor_type}</span>: {String(log.actor_id || '')}
                       </td>
                       <td className="py-2.5 px-3 text-zinc-400">
-                        {log.object_type}:{log.object_id?.slice(0, 8)}...
+                        {log.object_type}:{String(log.object_id || '').slice(0, 12)}
                       </td>
                       <td className="py-2.5 px-3">
                         <span
@@ -69,7 +67,7 @@ export default async function AuditPage() {
                         </span>
                       </td>
                       <td className="py-2.5 px-3 text-[10px] text-zinc-500 max-w-xs truncate">
-                        {JSON.stringify(log.metadata)}
+                        {JSON.stringify(log.metadata_without_secrets ?? {})}
                       </td>
                     </tr>
                   ))
