@@ -68,10 +68,12 @@ async def zoho_status(service: ZohoMailService = Depends(get_zoho_service)) -> d
 @zoho_router.post("/api/integrations/zoho/connect", dependencies=[Depends(require_service_auth)])
 async def zoho_connect(
     return_to: str = Query(default="/dashboard/settings"),
+    returnTo: str | None = Query(default=None),
     service: ZohoMailService = Depends(get_zoho_service),
 ) -> dict[str, Any]:
     try:
-        return await service.start_oauth_connect(return_to=return_to)
+        res = await service.start_oauth_connect(return_to=returnTo or return_to)
+        return {**res, "authUrl": res.get("authorizationUrl")}
     except ZohoIntegrationError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 

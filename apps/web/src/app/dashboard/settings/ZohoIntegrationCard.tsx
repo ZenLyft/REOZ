@@ -107,14 +107,15 @@ export function ZohoIntegrationCard({ initialStatus }: { initialStatus?: ZohoPub
     setBusyAction('connect');
     setBanner(null);
     try {
-      const res = await fetch('/api/integrations/zoho/connect?return_to=/dashboard/settings', {
+      const res = await fetch('/api/integrations/zoho/connect?returnTo=/dashboard/settings', {
         method: 'GET',
       });
       const data = await res.json();
-      if (!res.ok || !data?.authorizationUrl) {
+      const targetUrl = data?.authUrl || data?.authorizationUrl;
+      if (!res.ok || !targetUrl) {
         throw new Error(data?.error || data?.detail || 'Could not generate Zoho OAuth URL.');
       }
-      window.location.href = data.authorizationUrl;
+      window.location.href = targetUrl;
     } catch (err) {
       setBanner({
         type: 'error',
@@ -136,7 +137,7 @@ export function ZohoIntegrationCard({ initialStatus }: { initialStatus?: ZohoPub
       await refreshStatus();
       setBanner({
         type: 'success',
-        text: `Zoho connection verified (${data.accountCount ?? 0} account(s), ${data.senderCount ?? 0} authorized sender(s)).`,
+        text: `Zoho connection verified (${data.accountCount ?? data.accountsCount ?? 0} account(s), ${data.senderCount ?? 0} authorized sender(s)).`,
       });
     } catch (err) {
       setBanner({

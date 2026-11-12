@@ -32,11 +32,17 @@ export async function POST(req: NextRequest) {
       existingSenderEmail: ctx.selectedSenderEmail,
     });
 
+    const senderCount = discovery.accounts.reduce(
+      (sum, a) => sum + (Array.isArray(a.sendMailDetails) ? a.sendMailDetails.length : 1),
+      0
+    );
     return NextResponse.json({
       success: true,
       status: 'CONNECTED',
       dataCenter: ctx.dataCenter,
+      accountCount: discovery.accounts.length,
       accountsCount: discovery.accounts.length,
+      senderCount,
       selectedAccountId: discovery.selectedAccountId,
       selectedSenderEmail: discovery.selectedSenderEmail,
     });

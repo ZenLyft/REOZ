@@ -11,16 +11,24 @@ export async function GET(req: NextRequest) {
   const gate = await requireFounderSession(req, { requireFounderRole: true, maxRequests: 15 });
   if (!gate.ok) return gate.response;
 
-  const returnTo = req.nextUrl.searchParams.get('returnTo') || '/dashboard/settings';
+  const returnTo =
+    req.nextUrl.searchParams.get('returnTo') ||
+    req.nextUrl.searchParams.get('return_to') ||
+    '/dashboard/settings';
   const redirectMode = req.nextUrl.searchParams.get('redirect') === 'true';
 
   const proxied = await proxyAscensionZohoIfLocalUnconfigured({
-    path: `/api/integrations/zoho/connect?returnTo=${encodeURIComponent(returnTo)}&userId=${encodeURIComponent(gate.userId)}`,
+    path: `/api/integrations/zoho/connect?returnTo=${encodeURIComponent(returnTo)}&return_to=${encodeURIComponent(returnTo)}&userId=${encodeURIComponent(gate.userId)}`,
     method: 'GET',
   });
-  if (proxied.proxied && proxied.json?.authUrl) {
-    if (redirectMode) return NextResponse.redirect(proxied.json.authUrl);
-    return NextResponse.json({ success: true, authUrl: proxied.json.authUrl });
+  const proxiedAuthUrl = proxied.json?.authUrl || proxied.json?.authorizationUrl;
+  if (proxied.proxied && proxiedAuthUrl) {
+    if (redirectMode) return NextResponse.redirect(proxiedAuthUrl);
+    return NextResponse.json({
+      success: true,
+      authUrl: proxiedAuthUrl,
+      authorizationUrl: proxiedAuthUrl,
+    });
   }
 
   try {
@@ -31,7 +39,11 @@ export async function GET(req: NextRequest) {
     if (redirectMode) {
       return NextResponse.redirect(authUrl);
     }
-    return NextResponse.json({ success: true, authUrl });
+    return NextResponse.json({
+      success: true,
+      authUrl,
+      authorizationUrl: authUrl,
+    });
   } catch (err: any) {
     return NextResponse.json(
       {
