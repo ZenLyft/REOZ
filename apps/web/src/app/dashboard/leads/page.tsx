@@ -26,12 +26,13 @@ export default async function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Title & Action Buttons */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#E5DDD0] pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Prospects & Leads</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Track, qualify, and advance opportunities across local businesses and institutions.
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+            Prospects & Leads
+          </h1>
+          <p className="mt-1 text-sm text-[#5A554C]">
+            Track, qualify, and convert opportunities across colleges, hostels, and local businesses worldwide.
           </p>
         </div>
 
@@ -39,7 +40,7 @@ export default async function LeadsPage() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           Failed to load leads from database: {error.message}
         </div>
       ) : (
@@ -48,4 +49,3 @@ export default async function LeadsPage() {
     </div>
   );
 }
-

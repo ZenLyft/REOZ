@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface WhatsAppSession {
   sessionId: string;
@@ -56,7 +57,9 @@ export function WhatsAppClient() {
     optOutCount: 0,
   });
   const [isSending, setIsSending] = useState(false);
-  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    null
+  );
 
   useEffect(() => {
     fetchRealData();
@@ -65,15 +68,14 @@ export function WhatsAppClient() {
   async function fetchRealData() {
     setLoading(true);
     try {
-      // 1. Check live OpenWA gateway
-      const sessionRes = await fetch('/api/whatsapp/session');
+      const [sessionRes, convRes] = await Promise.all([
+        fetch('/api/whatsapp/session'),
+        fetch('/api/whatsapp/conversations'),
+      ]);
       const sessionData = await sessionRes.json();
       setSession(sessionData);
 
-      // 2. Fetch real data stored in Supabase
-      const convRes = await fetch('/api/whatsapp/conversations');
       const convData = await convRes.json();
-
       if (convData.success) {
         setFollowups(convData.followups || []);
         setMessages(convData.messages || []);
@@ -82,7 +84,7 @@ export function WhatsAppClient() {
           setSelectedFollowupId(convData.followups[0].id);
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load WhatsApp data:', err);
     } finally {
       setLoading(false);
@@ -92,7 +94,10 @@ export function WhatsAppClient() {
   async function handleApproveFollowup(draft: FollowupDraft) {
     const recipientNumber = draft.leads?.public_phone?.trim();
     if (!recipientNumber) {
-      setActionNotice({ type: 'error', text: 'No verified phone number recorded for this lead yet.' });
+      setActionNotice({
+        type: 'error',
+        text: 'No verified phone number recorded for this lead yet. Use "Open WhatsApp" to select a contact manually or update the lead.',
+      });
       return;
     }
 
@@ -120,193 +125,204 @@ export function WhatsAppClient() {
       } else {
         setActionNotice({
           type: 'error',
-          text: data.error || 'Failed to dispatch: OpenWA gateway not connected.',
+          text: data.error || 'OpenWA gateway not connected — use Open WhatsApp Web below.',
         });
       }
-    } catch (err: any) {
-      setActionNotice({ type: 'error', text: err.message });
+    } catch (err: unknown) {
+      setActionNotice({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Network error',
+      });
     } finally {
       setIsSending(false);
     }
   }
 
-  const activeFollowup = followups.find((f) => f.id === selectedFollowupId) || followups[0];
+  function getWaMeUrl(draft: FollowupDraft) {
+    const digits = (draft.leads?.public_phone || '').replace(/\D/g, '');
+    const formatted = digits.length === 10 ? `91${digits}` : digits;
+    const encoded = encodeURIComponent(draft.notes || '');
+    return formatted ? `https://wa.me/${formatted}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  }
+
+  const activeFollowup = followups.find((f) => f.id === selectedFollowupId) || followups[0] || null;
+  const isGatewayReady = session?.status === 'ready';
 
   return (
     <div className="space-y-6">
-      {/* Header & Status Ribbon */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+      {/* Header & Live Status Ribbon */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FFFDF9] border border-[#E5DDD0] p-6 rounded-2xl shadow-sm">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black text-[#11100E] flex items-center gap-2.5">
               <span
                 className={`w-3 h-3 rounded-full ${
-                  session?.status === 'ready' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                  isGatewayReady ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
                 }`}
               />
-              Autonomous WhatsApp Client Acquisition Engine
+              WhatsApp Client Acquisition
             </h1>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              OpenWA Gateway v2.x
+            <span className="text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-[#F4EEE3] text-[#11100E] border border-[#DDD4C4]">
+              Line: {session?.phone || '+91 80159 29139'}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-400 max-w-2xl">
-            Official Line: +91 80159 29139 • Live integration connected to Supabase database. Real AI follow-up cadence, HMAC signature verification, and Founder 1-tap approval queue.
+          <p className="mt-1 text-xs text-[#5A554C] max-w-2xl">
+            Live OpenWA & Supabase cadence synced across global prospects. Review queued follow-ups or message replies directly.
           </p>
         </div>
 
-        {/* Refresh & Connect Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchRealData}
-            disabled={loading}
-            className="px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors"
-          >
-            {loading ? 'Refreshing...' : 'Refresh Status'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={fetchRealData}
+          disabled={loading}
+          className="self-start md:self-auto px-4 py-2 text-xs font-bold bg-[#11100E] hover:bg-[#272420] text-[#FAF6EE] rounded-xl transition-colors"
+        >
+          {loading ? 'Refreshing...' : 'Refresh Live Data'}
+        </button>
       </div>
 
-      {/* Gateway Reality / Connection Status Banner */}
-      {session?.status === 'disconnected' || !session ? (
-        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <svg className="w-5 h-5 flex-shrink-0 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-              <p className="font-bold text-rose-200">
-                OpenWA Gateway: DISCONNECTED (Microservice offline on port 2785)
-              </p>
-              <p className="text-[11px] text-rose-300/80">
-                To connect a real physical WhatsApp device, start the microservice via Docker (<code className="bg-rose-950 px-1 py-0.5 rounded text-rose-200">docker compose -f docker-compose.openwa.yml up -d</code>) or host OpenWA on a cloud VM.
-              </p>
-            </div>
+      {/* Gateway Connectivity Notice */}
+      {session?.emergencyStopActive ? (
+        <div className="bg-red-50 border border-red-200 text-red-900 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
+          <span className="font-bold">
+            Emergency Stop Active: Outbound WhatsApp sending is locked in Settings.
+          </span>
+          <Link href="/dashboard/settings" className="underline font-bold">
+            Manage Safety &rarr;
+          </Link>
+        </div>
+      ) : isGatewayReady ? (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
+            <span>OpenWA Gateway CONNECTED ({session?.phone || session?.sessionId})</span>
           </div>
-          <span className="font-mono text-[10px] bg-rose-500/20 text-rose-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-            STATUS: NOT_LINKED
+          <span className="font-mono text-[10px] bg-emerald-100 px-2 py-0.5 rounded">
+            {session?.engine}
           </span>
         </div>
       ) : (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>OpenWA WhatsApp session is CONNECTED ({session.phone || session.sessionId})</span>
+        <div className="bg-[#F4EEE3] border border-[#DDD4C4] text-[#5A554C] px-4 py-3 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span className="font-bold text-[#11100E]">OpenWA Gateway Offline — Instant Web/App Mode Ready:</span>{' '}
+            <span>
+              You can send every approved message in 1 tap via <code className="font-mono text-[#11100E]">wa.me</code> or start the OpenWA worker for silent dispatch.
+            </span>
           </div>
-          <span className="font-mono text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-200">
-            {session.engine}
+          <span className="font-mono text-[10px] bg-[#FFFDF9] border border-[#DDD4C4] px-2.5 py-1 rounded text-[#11100E] shrink-0">
+            STATUS: {session?.status?.toUpperCase() || 'STANDBY'}
           </span>
         </div>
       )}
 
-      {/* Action Notification */}
       {actionNotice && (
         <div
-          className={`px-4 py-3 rounded-xl text-xs flex items-center justify-between ${
+          className={`px-4 py-3 rounded-xl text-xs font-semibold border flex items-center justify-between ${
             actionNotice.type === 'success'
-              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-              : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-red-50 border-red-200 text-red-800'
           }`}
         >
           <span>{actionNotice.text}</span>
-          <button onClick={() => setActionNotice(null)} className="text-slate-400 hover:text-slate-200">
+          <button onClick={() => setActionNotice(null)} className="ml-4 font-bold">
             ✕
           </button>
         </div>
       )}
 
-      {/* Real Database Metrics (Connected to Supabase) */}
+      {/* Live Supabase Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Gateway</p>
-          <p className="mt-1 text-sm font-bold uppercase tracking-wider text-rose-400">
-            {session?.status === 'ready' ? 'ONLINE' : 'OFFLINE'}
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Gateway</p>
+          <p
+            className={`mt-1 text-sm font-black uppercase ${
+              isGatewayReady ? 'text-emerald-700' : 'text-[#8C6A3B]'
+            }`}
+          >
+            {isGatewayReady ? 'ONLINE' : 'STANDBY'}
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">Port 2785</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">OpenWA Engine</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Real Inbound</p>
-          <p className="mt-1 text-xl font-black text-slate-100">{stats.totalInbound}</p>
-          <p className="mt-1 text-[10px] text-slate-500">Live webhook msgs</p>
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Inbound Replies</p>
+          <p className="mt-1 text-xl font-black text-[#11100E]">{stats.totalInbound}</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">Webhook messages</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Real Outbound</p>
-          <p className="mt-1 text-xl font-black text-slate-100">{stats.totalOutbound}</p>
-          <p className="mt-1 text-[10px] text-slate-500">Delivered via OpenWA</p>
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Outbound Sent</p>
+          <p className="mt-1 text-xl font-black text-[#11100E]">{stats.totalOutbound}</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">Tracked dispatches</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Awaiting Approval</p>
-          <p className="mt-1 text-xl font-black text-amber-400">{stats.awaitingApproval}</p>
-          <p className="mt-1 text-[10px] text-amber-400/80">In Supabase DB</p>
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Follow-Up Queue</p>
+          <p className="mt-1 text-xl font-black text-[#8C6A3B]">{stats.awaitingApproval}</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">Awaiting review</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Delivered / Read</p>
-          <p className="mt-1 text-xl font-black text-emerald-400">{stats.deliveredCount}</p>
-          <p className="mt-1 text-[10px] text-slate-500">Confirmed receipts</p>
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Delivered / Read</p>
+          <p className="mt-1 text-xl font-black text-emerald-700">{stats.deliveredCount}</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">Confirmed ACKs</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-          <p className="text-[11px] font-medium text-slate-400">Opt-Outs / DNC</p>
-          <p className="mt-1 text-xl font-black text-zinc-400">{stats.optOutCount}</p>
-          <p className="mt-1 text-[10px] text-slate-500">Zero strikes</p>
+        <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
+          <p className="text-[11px] font-bold text-[#7C756A]">Opt-Outs / DNC</p>
+          <p className="mt-1 text-xl font-black text-[#5A554C]">{stats.optOutCount}</p>
+          <p className="mt-1 text-[10px] text-[#7C756A]">Protected leads</p>
         </div>
       </div>
 
-      {/* Main Real-Data Studio: Real Follow-ups from Database */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden min-h-[550px]">
-        {/* Left Column: Real Follow-up Queue from Supabase (5 cols) */}
-        <div className="lg:col-span-5 border-r border-slate-800 flex flex-col bg-slate-900/50">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Live AI Follow-Up Queue ({followups.length} Drafts in Supabase)
+      {/* Follow-Up Studio + Live Message Log */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 bg-[#FFFDF9] border border-[#E5DDD0] rounded-2xl overflow-hidden min-h-[480px] shadow-sm">
+        {/* Left: Live Follow-Up Queue */}
+        <div className="lg:col-span-5 border-b lg:border-b-0 lg:border-r border-[#E5DDD0] flex flex-col bg-[#FAF6EE]">
+          <div className="p-4 border-b border-[#E5DDD0] flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#11100E]">
+              Live Follow-Up Queue ({followups.length})
             </h2>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              Agent 10 Cadence
+            <span className="text-[10px] font-mono font-bold text-[#8C6A3B] bg-[#FFFDF9] px-2 py-0.5 rounded-full border border-[#DDD4C4]">
+              Supabase Live
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 max-h-[480px]">
+          <div className="flex-1 overflow-y-auto divide-y divide-[#EFE7DA] max-h-[440px]">
             {followups.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">
-                No follow-up drafts currently in Supabase. Run the follow-up worker to evaluate discovered leads.
+              <div className="p-8 text-center text-xs text-[#7C756A]">
+                No scheduled WhatsApp follow-ups yet. Run Global Client Finder or check Approvals to queue outreach.
               </div>
             ) : (
               followups.map((f) => {
-                const isSelected = f.id === selectedFollowupId;
+                const isSelected = f.id === activeFollowup?.id;
                 return (
                   <button
                     key={f.id}
+                    type="button"
                     onClick={() => setSelectedFollowupId(f.id)}
-                    className={`w-full text-left p-4 transition-all hover:bg-slate-800/40 ${
-                      isSelected ? 'bg-slate-800/90 border-l-4 border-indigo-500' : ''
+                    className={`w-full text-left p-4 transition-all hover:bg-[#F2EBE0] ${
+                      isSelected ? 'bg-[#FFFDF9] border-l-4 border-[#11100E]' : ''
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-slate-100 truncate max-w-[220px]">
-                        {f.leads?.organisation_name || 'Discovered Business'}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-xs text-[#11100E] truncate">
+                        {f.leads?.organisation_name || 'Verified Business'}
                       </span>
-                      <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#EFE7DA] text-[#11100E] border border-[#DDD4C4]">
                         {f.stage}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-slate-400">
-                        {f.leads?.location || 'Global'}
-                      </span>
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-[#5A554C]">
+                      <span>{f.leads?.location || 'Global'}</span>
                       {f.leads?.score && (
-                        <span className="text-[9px] font-bold text-indigo-400">
-                          Score: {f.leads.score}
-                        </span>
+                        <span className="font-bold text-[#8C6A3B]">• Score {f.leads.score}</span>
                       )}
                     </div>
 
-                    <p className="mt-2 text-xs text-slate-300 line-clamp-2 italic bg-slate-950/40 p-2 rounded border border-slate-800">
-                      "{f.notes}"
+                    <p className="mt-2 text-xs text-[#5A554C] line-clamp-2 italic bg-[#FAF6EE] p-2 rounded-lg border border-[#E5DDD0]">
+                      “{f.notes}”
                     </p>
                   </button>
                 );
@@ -315,83 +331,99 @@ export function WhatsAppClient() {
           </div>
         </div>
 
-        {/* Right Column: Real Lead Inspector & Cryptographic 1-Tap Approval (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col bg-slate-950/40 p-6 space-y-4">
+        {/* Right: Inspector & Dispatch */}
+        <div className="lg:col-span-7 flex flex-col bg-[#FFFDF9] p-6 space-y-4">
           {activeFollowup ? (
             <>
-              <div className="border-b border-slate-800 pb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-100">
+              <div className="border-b border-[#EFE7DA] pb-4 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-black text-[#11100E]">
                     {activeFollowup.leads?.organisation_name || 'Prospect Review'}
                   </h3>
-                  <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    Stage: {activeFollowup.stage.toUpperCase()}
-                  </span>
+                  <p className="mt-0.5 text-xs text-[#5A554C]">
+                    {activeFollowup.leads?.location || 'Global'} •{' '}
+                    {activeFollowup.leads?.category || 'Enterprise'}
+                  </p>
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
-                  Location: {activeFollowup.leads?.location || 'Global'} • Category: {activeFollowup.leads?.category || 'Healthcare / Enterprise'}
-                </p>
+                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[#11100E] text-[#FAF6EE]">
+                  {activeFollowup.stage.toUpperCase()}
+                </span>
               </div>
 
-              {/* Message Draft Review */}
-              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+              <div className="p-4 rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                    AI Follow-Up Draft (Agent 10)
+                  <span className="font-bold text-[#8C6A3B] uppercase tracking-wide">
+                    AI Follow-Up Message
                   </span>
-                  <span className="font-mono text-[10px] text-slate-400">Cryptographic Hash Guard</span>
+                  <span className="font-mono text-[10px] text-[#7C756A]">
+                    Scheduled: {new Date(activeFollowup.scheduled_for).toLocaleDateString()}
+                  </span>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-100 leading-relaxed font-sans">
-                  "{activeFollowup.notes}"
+                <div className="bg-[#FFFDF9] p-4 rounded-xl border border-[#E5DDD0] text-xs text-[#11100E] leading-relaxed whitespace-pre-wrap">
+                  {activeFollowup.notes}
                 </div>
-
-                <p className="text-[11px] text-slate-400">
-                  <strong>Scheduled For:</strong> {new Date(activeFollowup.scheduled_for).toLocaleString()}
-                </p>
               </div>
 
-              {/* Founder Gatekeeper Decision */}
-              <div className="pt-4 flex items-center justify-between">
-                <div className="text-[11px] text-slate-500">
-                  Status in Supabase: <span className="font-mono text-amber-400">{activeFollowup.status}</span>
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs text-[#5A554C]">
+                  Status:{' '}
+                  <span className="font-mono font-bold text-[#11100E]">{activeFollowup.status}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleApproveFollowup(activeFollowup)}
-                    disabled={isSending}
-                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  {isGatewayReady && (
+                    <button
+                      type="button"
+                      onClick={() => handleApproveFollowup(activeFollowup)}
+                      disabled={isSending}
+                      className="px-4 py-2 text-xs font-bold text-[#FAF6EE] bg-[#11100E] hover:bg-[#272420] rounded-xl disabled:opacity-50"
+                    >
+                      {isSending ? 'Sending...' : 'Send via OpenWA'}
+                    </button>
+                  )}
+                  <a
+                    href={getWaMeUrl(activeFollowup)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-xs font-bold text-[#FAF6EE] bg-emerald-700 hover:bg-emerald-800 rounded-xl"
                   >
-                    {isSending ? (
-                      'Submitting...'
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Approve & Submit to OpenWA
-                      </>
-                    )}
-                  </button>
+                    Open WhatsApp &rarr;
+                  </a>
                 </div>
-              </div>
-
-              {/* Explanation Note for Founder */}
-              <div className="mt-auto bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-300">Why this data is 100% real:</p>
-                <p>
-                  • These 10 leads were discovered from verified establishments worldwide via OpenStreetMap.
-                </p>
-                <p>
-                  • The messages were drafted live by Groq AI and stored directly in your Supabase table (<code className="text-indigo-400">whatsapp_followups</code>).
-                </p>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-xs text-slate-500">
-              No draft selected.
+            <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2 py-12">
+              <p className="text-sm font-bold text-[#11100E]">No Follow-Up Draft Selected</p>
+              <p className="text-xs text-[#5A554C] max-w-sm">
+                Use Global Client Finder to discover targets and generate outreach drafts, or review Approvals.
+              </p>
+            </div>
+          )}
+
+          {/* Live Webhook Message Log */}
+          {messages.length > 0 && (
+            <div className="mt-auto border-t border-[#EFE7DA] pt-4 space-y-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+                Recent Live Messages ({messages.length})
+              </h4>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                {messages.slice(-5).map((m) => (
+                  <div
+                    key={m.id}
+                    className="rounded-lg bg-[#FAF6EE] border border-[#E5DDD0] px-3 py-2 text-xs flex items-center justify-between gap-3"
+                  >
+                    <span className="text-[#11100E] truncate">
+                      <strong className="uppercase text-[10px] mr-1.5">{m.direction}:</strong>
+                      {m.body}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#7C756A] shrink-0">
+                      {m.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

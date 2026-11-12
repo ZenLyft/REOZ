@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildAscensionHeaders, getAscensionConfig } from '@/lib/integrations/ascension-client';
+import { syncPipelineResultsToCrm } from '@/lib/integrations/ascension-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,10 @@ export async function POST(req: NextRequest) {
       }),
     });
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const crmSync = res.ok
+      ? await syncPipelineResultsToCrm(data?.pipeline_output, String(body.region || body.city || 'Global'))
+      : undefined;
+    return NextResponse.json(crmSync ? { ...data, crmSync } : data, { status: res.status });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Paperclip orchestration request failed' },

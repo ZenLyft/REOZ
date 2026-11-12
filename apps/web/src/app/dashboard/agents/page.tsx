@@ -1,11 +1,7 @@
-import { AgentsClient } from './AgentsClient';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function AgentsPage() {
-  return (
-    <div className="space-y-6">
-      <AgentsClient />
-    </div>
-  );
+export default function LegacyAgentsRedirectPage() {
+  redirect('/dashboard/ascension');
 }

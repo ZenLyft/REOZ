@@ -16,17 +16,17 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
 
   const [form, setForm] = useState<LeadCreateInput>({
     organisation_name: '',
-    organisation_type: 'local_business',
+    organisation_type: 'institution',
     category: '',
     location: '',
     website_url: '',
     website_status: 'not_enough_evidence',
     status_evidence_note: '',
-    service_interest: 'Web Development & Automation',
+    service_interest: 'HOMS & Digital Transformation',
     public_phone: '',
     public_email: '',
     source_url: '',
-    next_action: 'Initial audit & research',
+    next_action: 'Initial audit & outreach',
     next_follow_up: '',
     contact_restriction: 'none',
   });
@@ -51,92 +51,99 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <h2 className="text-lg font-semibold text-zinc-100">Add New Prospect</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11100E]/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-[#DDD4C4] bg-[#FFFDF9] p-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#EFE7DA] pb-4">
+          <h2 className="text-lg font-black text-[#11100E]">Add New Prospect</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-1 text-[#5A554C] hover:bg-[#F2EBE0] hover:text-[#11100E]"
           >
             ✕
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400">Organisation / Business Name *</label>
+            <label className="block text-xs font-bold text-[#11100E]">
+              Organisation / Institution Name *
+            </label>
             <input
               type="text"
               required
               value={form.organisation_name}
               onChange={(e) => setForm({ ...form, organisation_name: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-              placeholder="e.g. Apex Health Clinic"
+              className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E] focus:border-[#11100E] focus:outline-none"
+              placeholder="e.g. Regent College & Hostel"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Type</label>
+              <label className="block text-xs font-bold text-[#11100E]">Type</label>
               <select
                 value={form.organisation_type}
-                onChange={(e) => setForm({ ...form, organisation_type: e.target.value as 'local_business' | 'institution' })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    organisation_type: e.target.value as 'local_business' | 'institution',
+                  })
+                }
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2.5 text-sm text-[#11100E]"
               >
+                <option value="institution">Institution (HOMS/ERP)</option>
                 <option value="local_business">Local Business</option>
-                <option value="institution">Institution (ERP/HOMS)</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Category *</label>
+              <label className="block text-xs font-bold text-[#11100E]">Category *</label>
               <input
                 type="text"
                 required
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-                placeholder="e.g. Healthcare, Coaching"
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
+                placeholder="e.g. College, Hostel, Clinic"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400">Location (City / State) *</label>
+            <label className="block text-xs font-bold text-[#11100E]">Location (City, Country) *</label>
             <input
               type="text"
               required
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-              placeholder="e.g. Coimbatore, Tamil Nadu"
+              className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
+              placeholder="e.g. London, UK or Bengaluru, India"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400">Website URL (Leave blank if none)</label>
+            <label className="block text-xs font-bold text-[#11100E]">Website URL</label>
             <input
               type="url"
               value={form.website_url}
               onChange={(e) => setForm({ ...form, website_url: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
               placeholder="https://example.com"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Website Status *</label>
+              <label className="block text-xs font-bold text-[#11100E]">Website Status *</label>
               <select
                 value={form.website_status}
                 onChange={(e) => setForm({ ...form, website_status: e.target.value as any })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2.5 text-sm text-[#11100E]"
               >
                 <option value="not_enough_evidence">Not Enough Evidence</option>
                 <option value="not_found_in_checked_sources">Not Found in Checked Sources</option>
@@ -147,11 +154,11 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Contact Restriction</label>
+              <label className="block text-xs font-bold text-[#11100E]">Contact Restriction</label>
               <select
                 value={form.contact_restriction}
                 onChange={(e) => setForm({ ...form, contact_restriction: e.target.value as any })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2.5 text-sm text-[#11100E]"
               >
                 <option value="none">None (Standard)</option>
                 <option value="do_not_contact">Do Not Contact (DNC)</option>
@@ -161,38 +168,36 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-400">
-              Evidence Note * (Why is this status selected?)
-            </label>
+            <label className="block text-xs font-bold text-[#11100E]">Evidence Note *</label>
             <input
               type="text"
               required
               value={form.status_evidence_note}
               onChange={(e) => setForm({ ...form, status_evidence_note: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-              placeholder="e.g. Searched JustDial & Google Maps, no domain registered"
+              className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
+              placeholder="e.g. Checked OpenStreetMap & Google Maps; paper outpass desk"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Public Phone</label>
+              <label className="block text-xs font-bold text-[#11100E]">Public Phone</label>
               <input
                 type="text"
                 value={form.public_phone}
                 onChange={(e) => setForm({ ...form, public_phone: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-                placeholder="e.g. +91 9876543210"
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
+                placeholder="+44 20 7946 0000"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-400">Public Email</label>
+              <label className="block text-xs font-bold text-[#11100E]">Public Email</label>
               <input
                 type="email"
                 value={form.public_email}
                 onChange={(e) => setForm({ ...form, public_email: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
-                placeholder="info@business.com"
+                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2.5 text-sm text-[#11100E]"
+                placeholder="admissions@college.edu"
               />
             </div>
           </div>
@@ -201,14 +206,14 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-zinc-800"
+              className="rounded-xl border border-[#DDD4C4] px-4 py-2.5 text-sm font-bold text-[#5A554C] hover:bg-[#F2EBE0]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-xl bg-[#11100E] px-5 py-2.5 text-sm font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Save Prospect'}
             </button>
@@ -218,4 +223,3 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
     </div>
   );
 }
-

@@ -20,17 +20,19 @@ export function LeadsHeaderActions({ existingLeads }: LeadsHeaderActionsProps) {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5">
       <button
+        type="button"
         onClick={() => setIsCsvOpen(true)}
-        className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 hover:text-white"
+        className="rounded-xl border border-[#DDD4C4] bg-[#F4EEE3] px-4 py-2.5 text-xs font-bold text-[#11100E] hover:bg-[#EAE1D2]"
       >
-        📥 Import CSV
+        Import CSV
       </button>
 
       <button
+        type="button"
         onClick={() => setIsAddOpen(true)}
-        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500"
+        className="rounded-xl bg-[#11100E] px-4 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] shadow-sm"
       >
         + Add Prospect
       </button>
@@ -45,9 +47,12 @@ export function LeadsHeaderActions({ existingLeads }: LeadsHeaderActionsProps) {
         isOpen={isCsvOpen}
         onClose={() => setIsCsvOpen(false)}
         onImportComplete={handleRefresh}
-        existingLeads={existingLeads}
+        existingLeads={existingLeadRefsProp(existingLeads)}
       />
     </div>
   );
 }
 
+function existingLeadRefsProp(list: ExistingLeadRef[]) {
+  return list;
+}

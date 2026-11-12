@@ -4,6 +4,14 @@ import { createAdminClient } from '@/lib/supabase/server';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const MODEL_NAME = 'llama-3.3-70b-versatile';
 
+function extractTargetCity(message: string): string {
+  const inMatch = message.match(/\bin\s+([a-zA-Z\s-]{2,30})(?:$|,|\.|for|\?)/i);
+  if (inMatch?.[1]) {
+    return inMatch[1].trim();
+  }
+  return 'London';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message } = await req.json();
@@ -14,35 +22,40 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // 1. Fetch live system context
-    const { count: leadCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-    const { count: approvalCount } = await supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-    const { data: topLeads } = await supabase.from('leads').select('organisation_name, category, location, score, pipeline_stage').order('score', { ascending: false }).limit(5);
+    const [{ count: leadCount }, { count: approvalCount }, { data: topLeads }, { data: paidPayments }, { count: projectCount }] =
+      await Promise.all([
+        supabase.from('leads').select('*', { count: 'exact', head: true }),
+        supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase
+          .from('leads')
+          .select('organisation_name, category, location, score, pipeline_stage')
+          .order('score', { ascending: false })
+          .limit(5),
+        supabase.from('payments').select('amount_received_inr'),
+        supabase.from('projects').select('*', { count: 'exact', head: true }),
+      ]);
+
+    const verifiedCashInr = (paidPayments || []).reduce(
+      (sum: number, p: { amount_received_inr: number }) => sum + (p.amount_received_inr || 0),
+      0
+    );
 
     const contextSnippet = `
-CURRENT REOZ DATABASE CONTEXT:
+CURRENT REOZ LIVE DATABASE CONTEXT:
 - Total Discovered Leads in DB: ${leadCount || 0}
-- Pending Approvals Waiting for Founder: ${approvalCount || 0}
+- Pending Founder Approvals: ${approvalCount || 0}
+- Active Onboarded Client Projects: ${projectCount || 0}
+- Verified Cash Collected (INR): ₹${verifiedCashInr.toLocaleString('en-IN')}
 - Top Scored Leads: ${JSON.stringify(topLeads || [])}
 `;
 
-    // 2. Identify if command requires active tool execution
     const lower = message.toLowerCase();
 
-    // Tool: Run Discovery
     if (lower.includes('find') || lower.includes('discover') || lower.includes('search')) {
-      let targetCity = 'coimbatore';
-      let targetCategory = 'clinic';
+      const targetCity = extractTargetCity(message);
+      let targetCategory = 'college';
 
-      const cities = ['tiruppur', 'kangeyam', 'dharapuram', 'coimbatore', 'erode', 'salem', 'chennai', 'bangalore'];
-      for (const c of cities) {
-        if (lower.includes(c)) {
-          targetCity = c;
-          break;
-        }
-      }
-
-      const categories = ['restaurant', 'cafe', 'hotel', 'clinic', 'hospital', 'gym', 'college', 'school', 'coaching'];
+      const categories = ['hostel', 'college', 'university', 'school', 'clinic', 'hospital', 'hotel', 'restaurant', 'cafe', 'gym', 'coaching'];
       for (const cat of categories) {
         if (lower.includes(cat)) {
           targetCategory = cat;
@@ -50,7 +63,6 @@ CURRENT REOZ DATABASE CONTEXT:
         }
       }
 
-      // Execute discovery tool internally
       const host = req.headers.get('host') || 'localhost:3000';
       const protocol = host.includes('localhost') ? 'http' : 'https';
 
@@ -65,15 +77,14 @@ CURRENT REOZ DATABASE CONTEXT:
       return NextResponse.json({
         success: true,
         action_executed: 'business_discovery',
-        response: `✅ **Discovery Executed for ${targetCategory.toUpperCase()} in ${targetCity.toUpperCase()}!**\n\n• Found: **${discData.discovered_count || 0}** real physical establishments from OpenStreetMap registry.\n• Ingested **${discData.ingested_count || 0}** new deduplicated prospects into your live database.\n• Check your **Leads** tab to see them immediately.`,
+        response: `Discovery executed for **${targetCategory.toUpperCase()}** in **${targetCity.toUpperCase()}**.\n\n• Found: **${discData.discovered_count || 0}** physical organisations from OpenStreetMap\n• Saved: **${discData.ingested_count || 0}** new deduplicated leads to your CRM\n• Open **Leads** or **Find Clients** to review and outreach.`,
       });
     }
 
-    // Tool: Query Groq LLM for Business Strategy / Briefs
     if (!GROQ_API_KEY) {
       return NextResponse.json({
         success: true,
-        response: `Groq API Key is not configured. Database Context: ${leadCount} leads, ${approvalCount} pending approvals.`,
+        response: `Groq API key is missing in environment.\n\nLive DB Status: **${leadCount || 0}** leads, **${approvalCount || 0}** pending approvals, **${projectCount || 0}** active projects, **₹${verifiedCashInr.toLocaleString('en-IN')}** verified cash.`,
       });
     }
 
@@ -90,9 +101,9 @@ CURRENT REOZ DATABASE CONTEXT:
           {
             role: 'system',
             content: `You are the Chief AI Orchestrator of REOZ for ZenLyft founder Niresh Senthoor.
-You have real-time access to the database. Be direct, authoritative, and focused on revenue operations.
+Use ONLY verified facts from the live database context below. Never invent revenue or leads.
 ${contextSnippet}
-Respond in concise markdown with clear next actions.`,
+Respond in concise, actionable markdown focused on closing paying clients globally.`,
           },
           { role: 'user', content: message },
         ],
@@ -100,14 +111,14 @@ Respond in concise markdown with clear next actions.`,
     });
 
     const groqData = await groqResponse.json();
-    const reply = groqData.choices?.[0]?.message?.content || 'Unable to generate response from Groq.';
+    const reply = groqData.choices?.[0]?.message?.content || 'Unable to generate response right now.';
 
     return NextResponse.json({
       success: true,
       response: reply,
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Command failed';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
-

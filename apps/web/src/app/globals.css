@@ -3,16 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 241, 245, 249;
+  --foreground-rgb: 17, 16, 14;
+  --background-start-rgb: 250, 246, 238;
+  --background-end-rgb: 243, 236, 224;
+  --surface-card: #fffdf9;
+  --surface-muted: #f2ebe0;
+  --border-warm: #e5ddd0;
+  --accent-bronze: #8c6a3b;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
-      transparent,
+      rgb(var(--background-start-rgb)),
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
@@ -20,7 +24,23 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Touch target sizing for mobile (iPhone PWA) */
-button, a, input, select {
-  touch-action: manipulation;
+::selection {
+  background-color: #11100e;
+  color: #faf6ee;
+}
+
+/* Editorial warm custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f3ece0;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbbda7;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9a8b73;
 }
