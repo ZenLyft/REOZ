@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import {
+  ZENLYFT_MASTER_SYSTEM_PROMPT,
+  computeSalesKpis,
+} from '@/lib/ai/zenlyft-client-engine';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const MODEL_NAME = 'llama-3.3-70b-versatile';
@@ -22,10 +26,13 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    const [{ count: leadCount }, { count: approvalCount }, { data: topLeads }, { data: paidPayments }, { count: projectCount }] =
+    const [{ count: leadCount }, { count: qualifiedCount }, { count: approvalCount }, { count: outboundSentCount }, { count: repliedCount }, { data: topLeads }, { data: paidPayments }, { count: projectCount }] =
       await Promise.all([
         supabase.from('leads').select('*', { count: 'exact', head: true }),
+        supabase.from('leads').select('*', { count: 'exact', head: true }).gte('score', 60),
         supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('whatsapp_messages').select('*', { count: 'exact', head: true }).eq('direction', 'outbound'),
+        supabase.from('whatsapp_messages').select('*', { count: 'exact', head: true }).eq('direction', 'inbound'),
         supabase
           .from('leads')
           .select('organisation_name, category, location, score, pipeline_stage')
@@ -40,12 +47,23 @@ export async function POST(req: NextRequest) {
       0
     );
 
+    const kpis = computeSalesKpis({
+      researchedLeads: leadCount || 0,
+      qualifiedLeads: qualifiedCount || 0,
+      deliveredMessages: outboundSentCount || 0,
+      repliesReceived: repliedCount || 0,
+      positiveReplies: Math.min(repliedCount || 0, qualifiedCount || 0),
+      meetingsBooked: projectCount || 0,
+    });
+
     const contextSnippet = `
 CURRENT REOZ LIVE DATABASE CONTEXT:
-- Total Discovered Leads in DB: ${leadCount || 0}
+- Total Discovered Leads in DB: ${leadCount || 0} (Qualified >=60pts: ${qualifiedCount || 0})
+- Outbound WhatsApp Sent: ${outboundSentCount || 0} | Replies: ${repliedCount || 0}
 - Pending Founder Approvals: ${approvalCount || 0}
 - Active Onboarded Client Projects: ${projectCount || 0}
 - Verified Cash Collected (INR): ₹${verifiedCashInr.toLocaleString('en-IN')}
+- Sales KPIs: ${JSON.stringify(kpis)}
 - Top Scored Leads: ${JSON.stringify(topLeads || [])}
 `;
 
@@ -100,10 +118,11 @@ CURRENT REOZ LIVE DATABASE CONTEXT:
         messages: [
           {
             role: 'system',
-            content: `You are the Chief AI Orchestrator of REOZ for ZenLyft founder Niresh Senthoor.
-Use ONLY verified facts from the live database context below. Never invent revenue or leads.
+            content: `${ZENLYFT_MASTER_SYSTEM_PROMPT}
+
+FOUNDER OPERATOR: Niresh Senthoor (CEO, ZenLyft).
 ${contextSnippet}
-Respond in concise, actionable markdown focused on closing paying clients globally.`,
+Respond in concise, actionable markdown grounded strictly in verified database facts.`,
           },
           { role: 'user', content: message },
         ],

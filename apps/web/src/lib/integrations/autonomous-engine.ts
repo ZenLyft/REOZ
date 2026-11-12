@@ -41,13 +41,14 @@ export async function getAutopilotSettings() {
 
   try {
     const admin = createAdminClient();
-    const { data } = await admin
-      .from('system_settings')
-      .select(
-        'autonomy_level, emergency_stop_active, evolution_api_auto_send, auto_pilot_enabled, auto_send_first_cold, notify_every_event, next_permission_founder_only'
-      )
-      .eq('id', SETTINGS_ID)
-      .maybeSingle();
+    const [{ data }, { data: flagFact }] = await Promise.all([
+      admin.from('system_settings').select('*').eq('id', SETTINGS_ID).maybeSingle(),
+      admin
+        .from('ascension_memory_facts')
+        .select('metadata')
+        .eq('fact_id', 'reoz_autopilot_flags')
+        .maybeSingle(),
+    ]);
 
     const row = (data || {}) as {
       autonomy_level?: number;
@@ -59,15 +60,25 @@ export async function getAutopilotSettings() {
       next_permission_founder_only?: boolean;
     };
 
+    const flags = (flagFact?.metadata || {}) as {
+      auto_pilot_enabled?: boolean;
+      auto_send_first_cold?: boolean;
+      notify_every_event?: boolean;
+      next_permission_founder_only?: boolean;
+    };
+
     const level = row.autonomy_level ?? 3;
     return {
       autonomy_level: level,
       emergency_stop_active: Boolean(row.emergency_stop_active),
-      auto_pilot_enabled: row.auto_pilot_enabled ?? true,
+      auto_pilot_enabled: row.auto_pilot_enabled ?? flags.auto_pilot_enabled ?? true,
       auto_send_first_cold:
-        row.auto_send_first_cold ?? (level >= 3 || Boolean(row.evolution_api_auto_send)),
-      notify_every_event: row.notify_every_event ?? true,
-      next_permission_founder_only: row.next_permission_founder_only ?? true,
+        row.auto_send_first_cold ??
+        flags.auto_send_first_cold ??
+        (level >= 3 || Boolean(row.evolution_api_auto_send)),
+      notify_every_event: row.notify_every_event ?? flags.notify_every_event ?? true,
+      next_permission_founder_only:
+        row.next_permission_founder_only ?? flags.next_permission_founder_only ?? true,
     };
   } catch {
     return {

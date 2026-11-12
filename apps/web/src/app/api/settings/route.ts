@@ -20,29 +20,31 @@ export async function GET() {
     }
 
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from('system_settings')
-      .select('*')
-      .eq('id', SETTINGS_ID)
-      .maybeSingle();
+    const [{ data, error }, { data: flagFact }] = await Promise.all([
+      admin.from('system_settings').select('*').eq('id', SETTINGS_ID).maybeSingle(),
+      admin
+        .from('ascension_memory_facts')
+        .select('metadata')
+        .eq('fact_id', 'reoz_autopilot_flags')
+        .maybeSingle(),
+    ]);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const flags = (flagFact?.metadata || {}) as Record<string, unknown>;
     return NextResponse.json({
       success: true,
-      settings: data || {
+      settings: {
         id: SETTINGS_ID,
         autonomy_level: 3,
         emergency_stop_active: false,
         daily_discovery_limit: 100,
         active_market_country: 'Global (Worldwide)',
         active_market_regions: ['Americas', 'Europe & UK', 'Middle East & Africa', 'Asia-Pacific & India'],
-        auto_pilot_enabled: true,
-        auto_send_first_cold: true,
-        notify_every_event: true,
-        next_permission_founder_only: true,
+        ...flags,
+        ...(data || {}),
       },
       integrations: {
         groqConfigured: Boolean(process.env.GROQ_API_KEY),
@@ -118,11 +120,71 @@ export async function PATCH(req: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const { data, error } = await admin
+    const coreKeys = new Set([
+      'id',
+      'autonomy_level',
+      'emergency_stop_active',
+      'daily_discovery_limit',
+      'active_market_country',
+      'active_market_regions',
+      'evolution_api_auto_send',
+      'updated_at',
+    ]);
+
+    const extendedFlags = {
+      ...(typeof body.auto_pilot_enabled === 'boolean' ? { auto_pilot_enabled: body.auto_pilot_enabled } : {}),
+      ...(typeof body.auto_send_first_cold === 'boolean' ? { auto_send_first_cold: body.auto_send_first_cold } : {}),
+      ...(typeof body.notify_every_event === 'boolean' ? { notify_every_event: body.notify_every_event } : {}),
+      ...(typeof body.next_permission_founder_only === 'boolean'
+        ? { next_permission_founder_only: body.next_permission_founder_only }
+        : {}),
+    };
+
+    if (Object.keys(extendedFlags).length > 0) {
+      const { data: existingFlags } = await admin
+        .from('ascension_memory_facts')
+        .select('metadata')
+        .eq('fact_id', 'reoz_autopilot_flags')
+        .maybeSingle();
+
+      await admin.from('ascension_memory_facts').upsert(
+        {
+          fact_id: 'reoz_autopilot_flags',
+          scope: 'reoz_system_config',
+          subject: 'REOZ Autopilot & Notification Flags',
+          content: JSON.stringify(extendedFlags),
+          classification: 'internal',
+          provenance_source: 'settings_ui',
+          created_by_agent: 'reoz-founder',
+          metadata: {
+            ...((existingFlags?.metadata as Record<string, unknown>) || {}),
+            ...extendedFlags,
+            updated_at: updates.updated_at,
+          },
+        },
+        { onConflict: 'fact_id' }
+      );
+    }
+
+    let { data, error } = await admin
       .from('system_settings')
       .upsert(updates, { onConflict: 'id' })
       .select()
       .single();
+
+    if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('schema cache'))) {
+      const coreUpdates: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(updates)) {
+        if (coreKeys.has(k)) coreUpdates[k] = v;
+      }
+      const retry = await admin
+        .from('system_settings')
+        .upsert(coreUpdates, { onConflict: 'id' })
+        .select()
+        .single();
+      data = retry.data ? { ...retry.data, ...extendedFlags } : retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

@@ -92,12 +92,15 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
     try {
       const res = await fetch('/api/notifications/test', { method: 'POST' });
       const data = await res.json();
+      window.dispatchEvent(new CustomEvent('reoz-notifications-updated'));
       setNotice({
         type: 'success',
         text:
           data.pushedCount > 0
             ? `Test alert pushed to ${data.pushedCount} paired iPhone/PWA device(s)!`
-            : 'Test notification logged in Alerts bell. Pair your iPhone Home Screen PWA using the top-right Alerts button.',
+            : data.errors?.length > 0
+              ? `Saved in Alerts feed. Push note: ${data.errors[0]}`
+              : 'Test notification logged in top-right Alerts bell. Tap Alerts → Enable Push Alerts to also receive OS lock-screen banners.',
       });
     } catch {
       setNotice({ type: 'error', text: 'Could not dispatch test notification.' });

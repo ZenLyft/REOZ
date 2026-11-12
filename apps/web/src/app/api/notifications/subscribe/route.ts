@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { notifyFounder } from '@/lib/integrations/web-push';
+import { createClient } from '@/lib/supabase/server';
+import {
+  deactivatePushSubscription,
+  notifyFounder,
+  upsertPushSubscription,
+} from '@/lib/integrations/web-push';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,38 +37,38 @@ export async function POST(req: NextRequest) {
       String(body?.device_label || '').trim() ||
       (isIos ? 'Founder iPhone PWA' : 'Founder Browser PWA');
 
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
+    const saved = await upsertPushSubscription({
+      userId: user.id,
+      endpoint,
+      p256dh,
+      auth,
+      deviceLabel,
+      userAgent: ua,
+    });
 
-    const { error } = await admin.from('push_subscriptions').upsert(
-      {
-        user_id: user.id,
-        endpoint,
-        p256dh,
-        auth,
-        device_label: deviceLabel,
-        user_agent: ua.slice(0, 300),
-        is_active: true,
-        updated_at: now,
-      },
-      { onConflict: 'endpoint' }
-    );
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!saved.ok) {
+      return NextResponse.json(
+        { error: saved.error || 'Could not save device subscription.' },
+        { status: 500 }
+      );
     }
 
-    const notifyRes = await notifyFounder({
-      category: 'system',
-      title: 'REOZ iPhone Alerts Activated',
-      body: 'Every new prospect, auto-sent 1st cold message, and reply permission will arrive here live.',
-      url: '/dashboard/approvals',
-    });
+    // Only dispatch confirmation alert if explicitly requested (new pairing vs silent refresh)
+    let pushedCount = 0;
+    if (body?.silent !== true) {
+      const notifyRes = await notifyFounder({
+        category: 'system',
+        title: 'REOZ Push Alerts Activated',
+        body: 'Live alerts armed: new prospects, autonomous 1st cold WhatsApp sends, and reply approvals will notify this device.',
+        url: '/dashboard/approvals',
+      });
+      pushedCount = notifyRes.pushedCount;
+    }
 
     return NextResponse.json({
       success: true,
       device_label: deviceLabel,
-      pushedCount: notifyRes.pushedCount,
+      pushedCount,
     });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -91,11 +95,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing endpoint' }, { status: 400 });
     }
 
-    const admin = createAdminClient();
-    await admin
-      .from('push_subscriptions')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('endpoint', endpoint);
+    await deactivatePushSubscription(endpoint);
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
@@ -105,4 +105,3 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
-

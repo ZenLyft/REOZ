@@ -46,18 +46,23 @@ export function AIChatDrawer() {
 
   return (
     <>
-      {/* Floating Rich Black Pill with Orange Accent */}
+      {/* Floating Rich Black Pill with Orange Accent positioned cleanly above iPhone Home Bar */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 lg:bottom-6 right-5 z-50 flex items-center gap-2.5 rounded-full bg-[#151B2B] px-5 py-3 text-xs sm:text-sm font-bold text-[#F5F6F8] shadow-xl hover:bg-[#2B313C] border border-[#FF6B35]/70 transition-all active:scale-95"
+        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-6 right-4 sm:right-5 z-40 flex items-center gap-2 rounded-full bg-[#151B2B] px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-[#F5F6F8] shadow-xl hover:bg-[#2B313C] border border-[#FF6B35]/70 transition-all active:scale-95"
       >
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#FF6B35] animate-pulse" />
         <span>AI Command Centre</span>
       </button>
 
-      {/* Slide-out Cream & Rich Black Drawer */}
+      {/* Slide-out Responsive Drawer */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] border-l border-[#D0D5DD] bg-[#FFFFFF] p-6 shadow-2xl flex flex-col justify-between">
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-[#151B2B]/30 backdrop-blur-[1px]"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] border-l border-[#D0D5DD] bg-[#FFFFFF] px-5 sm:px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-4">
             <div>
               <div className="flex items-center gap-2">
@@ -120,6 +125,7 @@ export function AIChatDrawer() {
             </div>
           </form>
         </div>
+        </>
       )}
     </>
   );

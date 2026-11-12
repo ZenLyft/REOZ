@@ -9,10 +9,17 @@ export const metadata: Metadata = {
   description:
     'Autonomous Global Client Acquisition & Revenue Operations Platform for ZenLyft Technologies.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192.png',
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'REOZ',
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 

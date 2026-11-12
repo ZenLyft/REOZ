@@ -53,7 +53,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF]/95 backdrop-blur border-t border-[#E4E7EC] px-2 py-2 flex items-center justify-around">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-t border-[#E4E7EC] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around shadow-[0_-4px_20px_rgba(21,27,43,0.06)]">
       {mobileItems.map((item) => {
         const isActive = item.exact
           ? pathname === item.href
@@ -62,9 +62,9 @@ export function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition ${
+            className={`min-h-[38px] flex items-center justify-center px-3 py-1.5 rounded-xl text-[11px] font-bold transition-transform active:scale-95 ${
               isActive
-                ? 'bg-[#FF6B35] text-[#F5F6F8]'
+                ? 'bg-[#FF6B35] text-[#FFFFFF] shadow-sm'
                 : 'text-[#525A6B] hover:text-[#151B2B]'
             }`}
           >

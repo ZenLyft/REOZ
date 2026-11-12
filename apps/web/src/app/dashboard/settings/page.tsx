@@ -1,41 +1,55 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAscensionConfig } from '@/lib/integrations/ascension-client';
-import { getVapidConfig } from '@/lib/integrations/web-push';
+import { listActivePushSubscriptions, resolveVapidConfig } from '@/lib/integrations/web-push';
 import { SettingsClient } from './SettingsClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const supabase = createClient();
+  const admin = createAdminClient();
 
-  const [{ data: settings }, { count: devicesCount }] = await Promise.all([
+  const [{ data: settings }, { data: flagFact }, subscriptions, vapid] = await Promise.all([
     supabase
       .from('system_settings')
       .select('*')
       .eq('id', 'zenlyft-global-settings')
       .maybeSingle(),
-    supabase
-      .from('push_subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true),
+    admin
+      .from('ascension_memory_facts')
+      .select('metadata')
+      .eq('fact_id', 'reoz_autopilot_flags')
+      .maybeSingle(),
+    listActivePushSubscriptions(),
+    resolveVapidConfig(),
   ]);
 
-  const { publicKey, privateKey } = getVapidConfig();
+  const flags = (flagFact?.metadata || {}) as {
+    auto_pilot_enabled?: boolean;
+    auto_send_first_cold?: boolean;
+    notify_every_event?: boolean;
+    next_permission_founder_only?: boolean;
+  };
 
+  const level = settings?.autonomy_level ?? 3;
   const initialSettings = {
-    autonomy_level: settings?.autonomy_level ?? 3,
+    autonomy_level: level,
     emergency_stop_active: Boolean(settings?.emergency_stop_active),
     daily_discovery_limit: settings?.daily_discovery_limit ?? 100,
     active_market_country: settings?.active_market_country || 'Global (Worldwide)',
-    auto_pilot_enabled: settings?.auto_pilot_enabled ?? true,
-    auto_send_first_cold: settings?.auto_send_first_cold ?? true,
-    notify_every_event: settings?.notify_every_event ?? true,
-    next_permission_founder_only: settings?.next_permission_founder_only ?? true,
+    auto_pilot_enabled: settings?.auto_pilot_enabled ?? flags.auto_pilot_enabled ?? true,
+    auto_send_first_cold:
+      settings?.auto_send_first_cold ??
+      flags.auto_send_first_cold ??
+      (level >= 3 || Boolean(settings?.evolution_api_auto_send)),
+    notify_every_event: settings?.notify_every_event ?? flags.notify_every_event ?? true,
+    next_permission_founder_only:
+      settings?.next_permission_founder_only ?? flags.next_permission_founder_only ?? true,
     groqConfigured: Boolean(process.env.GROQ_API_KEY),
     ascensionConfigured: Boolean(getAscensionConfig().apiUrl),
     whatsappPhone: process.env.OPENWA_BUSINESS_PHONE || '+91 80159 29139',
-    vapidConfigured: Boolean(publicKey && privateKey),
-    pairedDevicesCount: devicesCount ?? 0,
+    vapidConfigured: Boolean(vapid.publicKey && vapid.privateKey),
+    pairedDevicesCount: subscriptions.length,
   };
 
   return (

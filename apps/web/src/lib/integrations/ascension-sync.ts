@@ -91,11 +91,18 @@ export async function syncPipelineResultsToCrm(
 
   try {
     const supabase = createAdminClient();
-    const { data: settingsRow } = await supabase
-      .from('system_settings')
-      .select('autonomy_level, emergency_stop_active, evolution_api_auto_send, auto_send_first_cold')
-      .eq('id', 'zenlyft-global-settings')
-      .maybeSingle();
+    const [{ data: settingsRow }, { data: flagFact }] = await Promise.all([
+      supabase
+        .from('system_settings')
+        .select('*')
+        .eq('id', 'zenlyft-global-settings')
+        .maybeSingle(),
+      supabase
+        .from('ascension_memory_facts')
+        .select('metadata')
+        .eq('fact_id', 'reoz_autopilot_flags')
+        .maybeSingle(),
+    ]);
 
     const s = (settingsRow || {}) as {
       autonomy_level?: number;
@@ -103,11 +110,16 @@ export async function syncPipelineResultsToCrm(
       evolution_api_auto_send?: boolean;
       auto_send_first_cold?: boolean;
     };
+    const flags = (flagFact?.metadata || {}) as {
+      auto_send_first_cold?: boolean;
+    };
 
     const emergencyStopped = Boolean(s.emergency_stop_active);
     const canAutoSendFirstCold =
       !emergencyStopped &&
-      (s.auto_send_first_cold ?? ((s.autonomy_level ?? 3) >= 3 || Boolean(s.evolution_api_auto_send)));
+      (s.auto_send_first_cold ??
+        flags.auto_send_first_cold ??
+        ((s.autonomy_level ?? 3) >= 3 || Boolean(s.evolution_api_auto_send)));
 
     const { data: existingRows } = await supabase.from('leads').select('normalised_name');
     const existingSet = new Set(

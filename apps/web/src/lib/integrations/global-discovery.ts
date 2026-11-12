@@ -1,4 +1,9 @@
 import { syncPipelineResultsToCrm, type PipelineQualifiedLead, type PipelineOutreachDraft } from './ascension-sync';
+import {
+  ALL_INDIA_STATES_AND_HUBS,
+  generateFirstContactOutreach,
+  scoreProspect100Point,
+} from '@/lib/ai/zenlyft-client-engine';
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
@@ -7,11 +12,12 @@ const OVERPASS_MIRRORS = [
 ];
 
 export const REGION_HUBS: Record<string, string[]> = {
-  global: ['London', 'New York', 'Singapore', 'Dubai', 'Toronto', 'Sydney'],
+  ...ALL_INDIA_STATES_AND_HUBS,
+  global: ['Bengaluru', 'Chennai', 'Mumbai', 'London', 'Singapore', 'Dubai'],
   north_america: ['New York', 'Toronto', 'Austin', 'Chicago'],
   europe: ['London', 'Berlin', 'Amsterdam', 'Dublin'],
   middle_east: ['Dubai', 'Abu Dhabi', 'Riyadh', 'Cape Town'],
-  apac: ['Singapore', 'Bengaluru', 'Tokyo', 'Sydney'],
+  apac: ['Bengaluru', 'Chennai', 'Singapore', 'Tokyo', 'Sydney'],
   latam: ['Sao Paulo', 'Mexico City', 'Bogota', 'Santiago'],
 };
 
@@ -191,15 +197,30 @@ export async function runGlobalOsmDiscovery(options: {
     const category = isHostel ? 'Hostel / Student Housing' : 'College / Institution';
     const website = tags.website || tags['contact:website'] || null;
     const phone = tags.phone || tags['contact:phone'] || tags['contact:mobile'] || null;
-    const score = Math.min(
-      98,
-      (isHostel ? 78 : 72) + (!website ? 12 : 4) + (phone ? 6 : 0)
-    );
+
+    const outreach = generateFirstContactOutreach({
+      companyName: name,
+      category,
+      industry: 'Education',
+      location: city,
+      hasWebsite: Boolean(website),
+      channel: 'WHATSAPP',
+    });
+    const qualification = scoreProspect100Point({
+      industry: 'Education',
+      hasDecisionMaker: true,
+      identifiedChallenge: !website || isHostel,
+      serviceRoute: outreach.service_route,
+      hasPhoneOrEmail: Boolean(phone),
+      hasWebsite: Boolean(website),
+    });
+    const score = qualification.score;
     const sourceRef =
       el.type && el.id
         ? `https://www.openstreetmap.org/${el.type}/${el.id}`
         : 'https://www.openstreetmap.org';
     const draftMessage = buildHomsOutreachDraft(name, city, Boolean(website));
+    const finalDraft = outreach.message || draftMessage;
 
     qualified.push({
       organisation_name: name,
@@ -209,14 +230,17 @@ export async function runGlobalOsmDiscovery(options: {
       website_url: website,
       public_phone: phone,
       homs_score: score,
-      priority: score >= 82 ? 'HIGH' : 'QUALIFIED',
-      recommended_product: 'ZenLyft HOMS (₹35,000)',
+      priority: qualification.priority,
+      recommended_product:
+        outreach.service_route === 'AI_AND_AUTOMATION'
+          ? 'ZenLyft AI & Workflow Automation'
+          : 'ZenLyft HOMS / SaaS Platform',
     });
 
     drafts.push({
       organisation_name: name,
       channel: 'whatsapp',
-      draft_message: draftMessage,
+      draft_message: finalDraft,
     });
 
     if (qualified.length >= boundedLimit) break;

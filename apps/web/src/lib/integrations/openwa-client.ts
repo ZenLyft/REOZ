@@ -1,6 +1,7 @@
 import crypto from 'crypto';
+import type { MasterResponseClass } from '@/lib/ai/zenlyft-client-engine';
 
-// 11 Canonical Classifications defined in Master Specification
+// 11 Canonical Classifications + Master 13-Class Taxonomy
 export type MessageClassification =
   | 'interested'
   | 'requesting_info'
@@ -16,6 +17,7 @@ export type MessageClassification =
 
 export interface AIClassificationResult {
   classification: MessageClassification;
+  master_class: MasterResponseClass;
   confidence: number;
   intent_summary: string;
   is_opt_out: boolean;
@@ -46,6 +48,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   if (optOutKeywords.some((k) => text === k || text.startsWith(`${k} `) || text.includes(` ${k}`))) {
     return {
       classification: 'opt_out',
+      master_class: 'OPT_OUT',
       confidence: 0.99,
       intent_summary: 'Prospect explicitly requested communication cessation / opt-out.',
       is_opt_out: true,
@@ -54,10 +57,24 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
     };
   }
 
+  // 1b. Automated Out-of-Office Detection (never treat as positive interest)
+  if (text.includes('out of office') || text.includes('auto reply') || text.includes('autoreply') || text.includes('on leave')) {
+    return {
+      classification: 'unclear',
+      master_class: 'OUT_OF_OFFICE',
+      confidence: 0.94,
+      intent_summary: 'Automated out-of-office or temporary unavailability message.',
+      is_opt_out: false,
+      recommended_action: 'Pause sequence until recipient returns; do not mark as positive reply.',
+      suggested_reply: 'Thank you for letting us know. We will follow up once you are back in the office.',
+    };
+  }
+
   // 2. Demo / Presentation Request
   if (text.includes('demo') || text.includes('demonstration') || text.includes('preview') || text.includes('show me how')) {
     return {
       classification: 'requesting_demo',
+      master_class: 'REQUEST_FOR_DEMO',
       confidence: 0.95,
       intent_summary: 'Prospect requested a live product demonstration or visual preview.',
       is_opt_out: false,
@@ -66,10 +83,37 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
     };
   }
 
+  // 2b. Proposal / Quotation Document Request
+  if (text.includes('proposal') || text.includes('scope of work') || text.includes('sow') || text.includes('send estimate')) {
+    return {
+      classification: 'requesting_info',
+      master_class: 'REQUEST_FOR_PROPOSAL',
+      confidence: 0.92,
+      intent_summary: 'Prospect asked for a formal proposal or scope estimate.',
+      is_opt_out: false,
+      recommended_action: 'Collect key requirements and prepare a Founder-approved proposal draft.',
+      suggested_reply: 'Thank you! We would be glad to prepare a tailored proposal for your team. Could you share 2–3 key workflows or timeline priorities you want covered?',
+    };
+  }
+
+  // 2c. Deferral / Follow-Up Requested / Not Now (must precede generic 'call' match)
+  if (text.includes('later') || text.includes('next month') || text.includes('next week') || text.includes('call back') || text.includes('busy right now') || text.includes('not now')) {
+    return {
+      classification: 'general_enquiry',
+      master_class: text.includes('next month') || text.includes('not now') ? 'NOT_NOW' : 'FOLLOW_UP_REQUESTED',
+      confidence: 0.89,
+      intent_summary: 'Prospect requested follow-up at a later date.',
+      is_opt_out: false,
+      recommended_action: 'Schedule respectful follow-up draft for requested timeframe.',
+      suggested_reply: 'Understood! I will check back with you around your preferred timeframe. Wishing your team a productive week ahead.',
+    };
+  }
+
   // 3. Meeting / Discussion Request
   if (text.includes('meeting') || text.includes('call') || text.includes('discuss') || text.includes('schedule') || text.includes('zoom') || text.includes('google meet')) {
     return {
       classification: 'wants_meeting',
+      master_class: 'POSITIVE_INTEREST',
       confidence: 0.92,
       intent_summary: 'Prospect is open to or requesting an introductory meeting or call.',
       is_opt_out: false,
@@ -82,6 +126,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   if (text.includes('price') || text.includes('cost') || text.includes('how much') || text.includes('charges') || text.includes('rate') || text.includes('quotation') || text.includes('quote')) {
     return {
       classification: 'asking_pricing',
+      master_class: 'REQUEST_FOR_PRICING',
       confidence: 0.90,
       intent_summary: 'Prospect is asking about investment, packages, or pricing structure.',
       is_opt_out: false,
@@ -94,6 +139,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   if (text.includes('not interested') || text.includes('no need') || text.includes('not looking') || text.includes('no thanks') || text.includes('already have')) {
     return {
       classification: 'not_interested',
+      master_class: 'NOT_INTERESTED',
       confidence: 0.92,
       intent_summary: 'Prospect politely declined current interest or indicated existing vendor.',
       is_opt_out: false,
@@ -102,10 +148,11 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
     };
   }
 
-  // 6. Wrong Contact
+  // 6. Wrong Contact / Referral
   if (text.includes('wrong number') || text.includes('wrong person') || text.includes('not the owner') || text.includes('left the company') || text.includes('i don\'t work')) {
     return {
       classification: 'not_right_contact',
+      master_class: 'WRONG_CONTACT',
       confidence: 0.95,
       intent_summary: 'Recipient indicates they are not the appropriate stakeholder for this organization.',
       is_opt_out: false,
@@ -114,10 +161,23 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
     };
   }
 
+  if (text.includes('contact our') || text.includes('speak with') || text.includes('reach out to') || text.includes('forwarded to')) {
+    return {
+      classification: 'not_right_contact',
+      master_class: 'REFERRAL',
+      confidence: 0.88,
+      intent_summary: 'Prospect referred conversation to another stakeholder.',
+      is_opt_out: false,
+      recommended_action: 'Record referred stakeholder without assuming marketing consent.',
+      suggested_reply: 'Thank you kindly for pointing us to the right colleague! We appreciate your help.',
+    };
+  }
+
   // 7. General Information Request
   if (text.includes('what is') || text.includes('how does') || text.includes('tell me more') || text.includes('details') || text.includes('brochure') || text.includes('info')) {
     return {
       classification: 'requesting_info',
+      master_class: 'NEEDS_MORE_INFORMATION',
       confidence: 0.88,
       intent_summary: 'Prospect is asking for general information or capabilities overview.',
       is_opt_out: false,
@@ -130,6 +190,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   if (text.includes('yes') || text.includes('interested') || text.includes('sure') || text.includes('ok') || text.includes('sounds good') || text.includes('great')) {
     return {
       classification: 'interested',
+      master_class: 'POSITIVE_INTEREST',
       confidence: 0.85,
       intent_summary: 'Prospect expressed positive sentiment or openness to continue.',
       is_opt_out: false,
@@ -142,6 +203,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   if (text.includes('issue') || text.includes('bug') || text.includes('error') || text.includes('down') || text.includes('help')) {
     return {
       classification: 'support_request',
+      master_class: 'UNCLEAR',
       confidence: 0.80,
       intent_summary: 'Prospect is reporting a technical issue or seeking operational support.',
       is_opt_out: false,
@@ -153,6 +215,7 @@ export function classifyIncomingMessage(body: string): AIClassificationResult {
   // Default: General Enquiry / Unclear
   return {
     classification: 'general_enquiry',
+    master_class: 'UNCLEAR',
     confidence: 0.70,
     intent_summary: 'General message requiring founder context review.',
     is_opt_out: false,

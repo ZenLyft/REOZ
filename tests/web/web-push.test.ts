@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  base64UrlToUint8Array,
   createVapidAuthorizationHeader,
   encryptWebPushPayload,
+  generateVapidKeyPair,
   uint8ArrayToBase64Url,
 } from '@/lib/integrations/web-push';
 import { pickAutomatedRegion } from '@/lib/integrations/autonomous-engine';
+import { REGION_HUBS } from '@/lib/integrations/global-discovery';
 
 describe('REOZ iPhone PWA Web Push & Autonomous Engine', () => {
   it('encrypts push payload cleanly in RFC 8291 aes128gcm format', async () => {
@@ -51,9 +54,23 @@ describe('REOZ iPhone PWA Web Push & Autonomous Engine', () => {
     expect(jwtPart.split('.')).toHaveLength(3);
   });
 
+  it('auto-generates valid P-256 VAPID keypair without manual env vars', async () => {
+    const pair = await generateVapidKeyPair();
+    expect(base64UrlToUint8Array(pair.publicKey)).toHaveLength(65);
+    expect(pair.privateKey.length).toBeGreaterThan(30);
+
+    const header = await createVapidAuthorizationHeader({
+      audience: 'https://fcm.googleapis.com',
+      subject: 'mailto:niresh@zenlyft.in',
+      vapidPublicKey: pair.publicKey,
+      vapidPrivateKey: pair.privateKey,
+    });
+    expect(header.startsWith('vapid t=')).toBe(true);
+  });
+
   it('rotates continents cleanly and respects explicit region override', () => {
     const picked = pickAutomatedRegion();
-    expect(['global', 'north_america', 'europe', 'middle_east', 'apac', 'latam']).toContain(picked);
+    expect(Object.keys(REGION_HUBS)).toContain(picked);
     expect(pickAutomatedRegion('Bengaluru')).toBe('Bengaluru');
   });
 });

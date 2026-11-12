@@ -15,9 +15,9 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] text-[#151B2B] flex flex-col pb-20 lg:pb-0">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#F5F6F8]/95 backdrop-blur-md border-b border-[#E4E7EC]">
+    <div className="min-h-[100dvh] bg-[#F5F6F8] text-[#151B2B] flex flex-col pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0">
+      {/* Top Navigation Bar with iPhone Safe-Area Support */}
+      <header className="sticky top-0 z-40 bg-[#F5F6F8]/95 backdrop-blur-md border-b border-[#E4E7EC] pt-[env(safe-area-inset-top)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
           <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
