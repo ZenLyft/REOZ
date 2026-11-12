@@ -20,14 +20,14 @@ export default async function DashboardLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
           <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[#11100E] text-[#FAF6EE] font-black text-sm flex items-center justify-center shadow-sm tracking-tight">
+            <div className="w-8 h-8 rounded-lg bg-[#11100E] text-[#FAF6EE] font-black text-sm flex items-center justify-center shadow-sm tracking-tight border-b-2 border-[#EA580C]">
               R
             </div>
             <div className="flex items-center gap-2">
               <span className="font-black text-[#11100E] tracking-tight text-sm sm:text-base">
                 REOZ
               </span>
-              <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#EFE7DA] text-[#5A554C] border border-[#DDD4C4]">
+              <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFF0E6] text-[#C2410C] border border-[#FDBA74]">
                 ZenLyft HQ
               </span>
             </div>

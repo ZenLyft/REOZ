@@ -9,23 +9,20 @@
   --surface-card: #fffdf9;
   --surface-muted: #f2ebe0;
   --border-warm: #e5ddd0;
-  --accent-bronze: #8c6a3b;
+  --accent-orange: #ea580c;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
+  background: linear-gradient(to bottom,
       rgb(var(--background-start-rgb)),
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
 }
 
 ::selection {
-  background-color: #11100e;
+  background-color: #ea580c;
   color: #faf6ee;
 }
 
@@ -34,13 +31,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f3ece0;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbbda7;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #9a8b73;
 }

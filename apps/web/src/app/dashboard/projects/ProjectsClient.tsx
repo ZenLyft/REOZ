@@ -204,7 +204,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
               type="button"
               onClick={() => setSelectedProjectId(p.id)}
               className={`rounded-xl px-4 py-2 text-xs font-bold border transition ${activeProject?.id === p.id
-                  ? 'bg-[#11100E] border-[#11100E] text-[#FAF6EE]'
+                  ? 'bg-[#11100E] border-2 border-[#EA580C] text-[#FAF6EE]'
                   : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
                 }`}
             >
@@ -216,7 +216,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
         <button
           type="button"
           onClick={() => setIsCreatingModal(true)}
-          className="self-start sm:self-auto rounded-xl bg-[#11100E] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] shadow-sm whitespace-nowrap"
+          className="self-start sm:self-auto rounded-xl bg-[#EA580C] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] shadow-sm whitespace-nowrap"
         >
           + Onboard Client
         </button>
@@ -233,7 +233,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
             <button
               type="button"
               onClick={() => setIsCreatingModal(true)}
-              className="rounded-xl bg-[#11100E] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420]"
+              className="rounded-xl bg-[#EA580C] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C]"
             >
               + Onboard First Paying Client
             </button>
@@ -251,7 +251,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
           <div className="lg:col-span-2 rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#EFE7DA] pb-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C6A3B]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#C2410C]">
                   Live Client Delivery
                 </span>
                 <h2 className="text-xl font-black text-[#11100E]">
@@ -291,14 +291,14 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                     key={m.id}
                     type="button"
                     onClick={() => handleToggleMilestone(activeProject.id, m)}
-                    className="w-full flex items-center justify-between rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-3.5 text-left hover:border-[#11100E] transition"
+                    className="w-full flex items-center justify-between rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-3.5 text-left hover:border-[#EA580C] transition"
                   >
                     <div className="flex items-center gap-3">
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${m.status === 'completed'
                             ? 'bg-emerald-700 text-[#FAF6EE]'
                             : m.status === 'in_progress'
-                              ? 'bg-[#11100E] text-[#FAF6EE]'
+                              ? 'bg-[#EA580C] text-[#FAF6EE]'
                               : 'bg-[#E5DDD0] text-[#5A554C]'
                           }`}
                       >
@@ -323,7 +323,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                       className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${m.status === 'completed'
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                           : m.status === 'in_progress'
-                            ? 'bg-[#11100E] border-[#11100E] text-[#FAF6EE]'
+                            ? 'bg-[#EA580C] border-[#EA580C] text-[#FAF6EE]'
                             : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C]'
                         }`}
                     >
@@ -376,7 +376,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                 </span>
                 <Link
                   href="/dashboard/revenue"
-                  className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#8C6A3B]"
+                  className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#C2410C]"
                 >
                   Manage Billing &rarr;
                 </Link>
@@ -527,7 +527,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-[#11100E] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-50"
+                className="rounded-xl bg-[#EA580C] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Complete Onboarding'}
               </button>

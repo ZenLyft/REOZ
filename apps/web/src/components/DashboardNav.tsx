@@ -30,7 +30,7 @@ export function DesktopNavLinks() {
             href={item.href}
             className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               isActive
-                ? 'bg-[#11100E] text-[#FAF6EE] shadow-sm'
+                ? 'bg-[#11100E] text-[#FAF6EE] shadow-sm border-b-2 border-[#EA580C]'
                 : 'text-[#5A554C] hover:text-[#11100E] hover:bg-[#EFE7DA]'
             }`}
           >
@@ -64,7 +64,7 @@ export function MobileBottomNav() {
             href={item.href}
             className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition ${
               isActive
-                ? 'bg-[#11100E] text-[#FAF6EE]'
+                ? 'bg-[#EA580C] text-[#FAF6EE]'
                 : 'text-[#5A554C] hover:text-[#11100E]'
             }`}
           >
@@ -75,4 +75,3 @@ export function MobileBottomNav() {
     </nav>
   );
 }
-

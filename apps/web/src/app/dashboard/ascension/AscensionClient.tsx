@@ -231,7 +231,7 @@ export default function AscensionClient() {
                 />
                 {isReady ? 'Auto-Finder Ready' : 'Waking Engine...'}
               </span>
-              <span className="rounded-full bg-[#EFE7DA] border border-[#DDD4C4] px-3 py-1 text-xs font-bold text-[#11100E]">
+              <span className="rounded-full bg-[#FFF0E6] border border-[#FDBA74] px-3 py-1 text-xs font-bold text-[#C2410C]">
                 ₹0 Cloud Spend Lock
               </span>
             </div>
@@ -276,7 +276,7 @@ export default function AscensionClient() {
                   }}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
                     active
-                      ? 'bg-[#11100E] border-[#11100E] text-[#FAF6EE] shadow-sm'
+                      ? 'bg-[#11100E] border-[#EA580C] text-[#FAF6EE] shadow-sm'
                       : 'bg-[#FAF6EE] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
                   }`}
                 >
@@ -297,13 +297,13 @@ export default function AscensionClient() {
             value={customCity}
             onChange={(e) => setCustomCity(e.target.value)}
             placeholder="Or type any city (e.g. Tokyo, Melbourne, Mumbai, Paris)..."
-            className="flex-1 px-4 py-3 rounded-xl bg-[#FAF6EE] border border-[#DDD4C4] text-sm text-[#11100E] placeholder-[#7C756A] focus:outline-none focus:border-[#11100E]"
+            className="flex-1 px-4 py-3 rounded-xl bg-[#FAF6EE] border border-[#DDD4C4] text-sm text-[#11100E] placeholder-[#7C756A] focus:outline-none focus:border-[#EA580C]"
           />
           <button
             type="button"
             disabled={busy || isPaused}
             onClick={handleFindClients}
-            className="px-7 py-3.5 rounded-xl bg-[#11100E] hover:bg-[#272420] disabled:opacity-50 text-sm font-bold text-[#FAF6EE] shadow-md transition whitespace-nowrap flex items-center justify-center gap-2"
+            className="px-7 py-3.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-sm font-bold text-[#FAF6EE] shadow-md transition whitespace-nowrap flex items-center justify-center gap-2"
           >
             {busy ? (
               <>
@@ -373,7 +373,7 @@ export default function AscensionClient() {
                       {p.location || 'Global'} • {p.category || 'Institution'}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-[#11100E] px-2.5 py-0.5 text-xs font-bold text-[#FAF6EE]">
+                  <span className="shrink-0 rounded-full bg-[#EA580C] px-2.5 py-0.5 text-xs font-bold text-[#FAF6EE]">
                     Score {p.homs_score ?? '—'}/100
                   </span>
                 </div>
@@ -385,12 +385,12 @@ export default function AscensionClient() {
                 )}
 
                 <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="text-[#8C6A3B] font-bold">
+                  <span className="text-[#C2410C] font-bold">
                     {p.recommended_package || 'ZenLyft HOMS'}
                   </span>
                   <Link
                     href="/dashboard/approvals"
-                    className="font-bold text-[#11100E] underline underline-offset-4 hover:text-[#8C6A3B]"
+                    className="font-bold text-[#11100E] underline underline-offset-4 hover:text-[#EA580C]"
                   >
                     Approve & Send WhatsApp &rarr;
                   </Link>

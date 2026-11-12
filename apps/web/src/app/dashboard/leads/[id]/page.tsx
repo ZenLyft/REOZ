@@ -53,7 +53,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#11100E] px-3 py-1 text-xs font-bold text-[#FAF6EE]">
+          <span className="rounded-full border border-[#EA580C] bg-[#11100E] px-3 py-1 text-xs font-bold text-[#FAF6EE]">
             Stage: {lead.pipeline_stage.toUpperCase()}
           </span>
           {lead.contact_restriction === 'do_not_contact' && (
@@ -77,7 +77,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                       href={lead.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline hover:text-[#8C6A3B]"
+                      className="underline hover:text-[#EA580C]"
                     >
                       {lead.website_url} &nearr;
                     </a>
@@ -142,7 +142,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-[#11100E]">Opportunity Fit Score</h2>
-              <span className="text-lg font-black text-[#11100E]">{lead.score ?? 75} / 100</span>
+              <span className="text-lg font-black text-[#EA580C]">{lead.score ?? 75} / 100</span>
             </div>
             <p className="mt-1 text-xs text-[#5A554C]">
               Deterministic fit score based on digital gap, institutional workflows, and reachable public channels.
@@ -202,7 +202,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             </div>
             <Link
               href="/dashboard/projects"
-              className="block w-full rounded-xl bg-[#11100E] py-2.5 text-center text-xs font-bold text-[#FAF6EE] hover:bg-[#272420]"
+              className="block w-full rounded-xl bg-[#EA580C] py-2.5 text-center text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C]"
             >
               Convert to Paying Client Project &rarr;
             </Link>

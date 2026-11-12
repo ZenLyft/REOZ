@@ -46,12 +46,12 @@ export function AIChatDrawer() {
 
   return (
     <>
-      {/* Floating Rich Black Pill */}
+      {/* Floating Rich Black Pill with Orange Accent */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 lg:bottom-6 right-5 z-50 flex items-center gap-2 rounded-full bg-[#11100E] px-5 py-3 text-xs sm:text-sm font-bold text-[#FAF6EE] shadow-xl hover:bg-[#272420] border border-[#2C2924] transition-all active:scale-95"
+        className="fixed bottom-20 lg:bottom-6 right-5 z-50 flex items-center gap-2.5 rounded-full bg-[#11100E] px-5 py-3 text-xs sm:text-sm font-bold text-[#FAF6EE] shadow-xl hover:bg-[#1E1C18] border border-[#EA580C]/70 transition-all active:scale-95"
       >
-        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#EA580C] animate-pulse" />
         <span>AI Command Centre</span>
       </button>
 
@@ -113,7 +113,7 @@ export function AIChatDrawer() {
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="absolute right-2 top-1.5 rounded-lg bg-[#11100E] px-3.5 py-1.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-40"
+                className="absolute right-2 top-1.5 rounded-lg bg-[#EA580C] px-3.5 py-1.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-40"
               >
                 Run
               </button>

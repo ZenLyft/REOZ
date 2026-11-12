@@ -208,7 +208,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#EFE7DA] pb-3">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C6A3B]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#C2410C]">
                     {item.action_type.replace(/_/g, ' ')}
                     {item.location ? ` • ${item.location}` : ''}
                   </span>
@@ -282,7 +282,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                         type="button"
                         disabled={processingId === item.id}
                         onClick={() => handleApprove(item)}
-                        className="rounded-xl bg-[#11100E] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420]"
+                        className="rounded-xl bg-[#EA580C] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C]"
                       >
                         {processingId === item.id ? 'Approving...' : 'Approve Draft'}
                       </button>

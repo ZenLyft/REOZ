@@ -213,7 +213,7 @@ export function CreateLeadModal({ isOpen, onClose, onLeadCreated }: CreateLeadMo
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-[#11100E] px-5 py-2.5 text-sm font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-50"
+              className="rounded-xl bg-[#EA580C] px-5 py-2.5 text-sm font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Save Prospect'}
             </button>

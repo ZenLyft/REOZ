@@ -236,7 +236,7 @@ export function WhatsAppClient() {
           <p className="text-[11px] font-bold text-[#7C756A]">Gateway</p>
           <p
             className={`mt-1 text-sm font-black uppercase ${
-              isGatewayReady ? 'text-emerald-700' : 'text-[#8C6A3B]'
+              isGatewayReady ? 'text-emerald-700' : 'text-[#C2410C]'
             }`}
           >
             {isGatewayReady ? 'ONLINE' : 'STANDBY'}
@@ -258,7 +258,7 @@ export function WhatsAppClient() {
 
         <div className="bg-[#FFFDF9] border border-[#E5DDD0] p-4 rounded-xl">
           <p className="text-[11px] font-bold text-[#7C756A]">Follow-Up Queue</p>
-          <p className="mt-1 text-xl font-black text-[#8C6A3B]">{stats.awaitingApproval}</p>
+          <p className="mt-1 text-xl font-black text-[#C2410C]">{stats.awaitingApproval}</p>
           <p className="mt-1 text-[10px] text-[#7C756A]">Awaiting review</p>
         </div>
 
@@ -283,7 +283,7 @@ export function WhatsAppClient() {
             <h2 className="text-xs font-bold uppercase tracking-wider text-[#11100E]">
               Live Follow-Up Queue ({followups.length})
             </h2>
-            <span className="text-[10px] font-mono font-bold text-[#8C6A3B] bg-[#FFFDF9] px-2 py-0.5 rounded-full border border-[#DDD4C4]">
+            <span className="text-[10px] font-mono font-bold text-[#C2410C] bg-[#FFFDF9] px-2 py-0.5 rounded-full border border-[#DDD4C4]">
               Supabase Live
             </span>
           </div>
@@ -302,7 +302,7 @@ export function WhatsAppClient() {
                     type="button"
                     onClick={() => setSelectedFollowupId(f.id)}
                     className={`w-full text-left p-4 transition-all hover:bg-[#F2EBE0] ${
-                      isSelected ? 'bg-[#FFFDF9] border-l-4 border-[#11100E]' : ''
+                      isSelected ? 'bg-[#FFFDF9] border-l-4 border-[#EA580C]' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -317,7 +317,7 @@ export function WhatsAppClient() {
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-[#5A554C]">
                       <span>{f.leads?.location || 'Global'}</span>
                       {f.leads?.score && (
-                        <span className="font-bold text-[#8C6A3B]">• Score {f.leads.score}</span>
+                        <span className="font-bold text-[#C2410C]">• Score {f.leads.score}</span>
                       )}
                     </div>
 
@@ -352,7 +352,7 @@ export function WhatsAppClient() {
 
               <div className="p-4 rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#8C6A3B] uppercase tracking-wide">
+                  <span className="font-bold text-[#C2410C] uppercase tracking-wide">
                     AI Follow-Up Message
                   </span>
                   <span className="font-mono text-[10px] text-[#7C756A]">

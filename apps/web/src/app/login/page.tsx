@@ -16,7 +16,7 @@ export default function LoginPage({
       <div className="w-full max-w-md space-y-6">
         {/* Header Branding */}
         <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#11100E] text-[#FAF6EE] font-black text-2xl shadow-md">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#11100E] text-[#FAF6EE] font-black text-2xl shadow-md border-b-4 border-[#EA580C]">
             R
           </div>
           <h1 className="text-2xl font-black tracking-tight text-[#11100E]">

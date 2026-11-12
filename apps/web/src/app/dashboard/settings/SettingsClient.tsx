@@ -143,13 +143,13 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
             onClick={() => setAutonomyLevel(1)}
             className={`text-left rounded-xl border p-4 transition ${
               autonomyLevel === 1
-                ? 'border-[#11100E] bg-[#11100E] text-[#FAF6EE]'
-                : 'border-[#E5DDD0] bg-[#FAF6EE] text-[#11100E] hover:border-[#CBBDA7]'
+                ? 'border-2 border-[#EA580C] bg-[#11100E] text-[#FAF6EE]'
+                : 'border-[#E5DDD0] bg-[#FAF6EE] text-[#11100E] hover:border-[#EA580C]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold">LEVEL 1: Full Internal Autonomy</span>
-              {autonomyLevel === 1 && <span className="text-xs font-bold">● Active</span>}
+              {autonomyLevel === 1 && <span className="text-xs font-bold text-[#FB923C]">● Active</span>}
             </div>
             <p
               className={`mt-1 text-[11px] ${
@@ -165,13 +165,13 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
             onClick={() => setAutonomyLevel(2)}
             className={`text-left rounded-xl border p-4 transition ${
               autonomyLevel === 2
-                ? 'border-[#11100E] bg-[#11100E] text-[#FAF6EE]'
-                : 'border-[#E5DDD0] bg-[#FAF6EE] text-[#11100E] hover:border-[#CBBDA7]'
+                ? 'border-2 border-[#EA580C] bg-[#11100E] text-[#FAF6EE]'
+                : 'border-[#E5DDD0] bg-[#FAF6EE] text-[#11100E] hover:border-[#EA580C]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold">LEVEL 2: Pre-Authorised Follow-Ups</span>
-              {autonomyLevel === 2 && <span className="text-xs font-bold">● Active</span>}
+              {autonomyLevel === 2 && <span className="text-xs font-bold text-[#FB923C]">● Active</span>}
             </div>
             <p
               className={`mt-1 text-[11px] ${
@@ -212,7 +212,7 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
             type="button"
             disabled={saving}
             onClick={handleSaveTargets}
-            className="rounded-xl bg-[#11100E] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-50"
+            className="rounded-xl bg-[#EA580C] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Settings to Database'}
           </button>
@@ -241,18 +241,18 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
 
         <Link
           href="/dashboard/products"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 hover:border-[#11100E] transition block space-y-1.5"
+          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 hover:border-[#EA580C] transition block space-y-1.5"
         >
-          <span className="text-xs font-bold text-[#8C6A3B] uppercase">Approved Pricing</span>
+          <span className="text-xs font-bold text-[#EA580C] uppercase">Approved Pricing</span>
           <div className="text-sm font-black text-[#11100E]">Product Catalogue & Floors &rarr;</div>
           <p className="text-xs text-[#5A554C]">Manage live service tiers & approved pricing</p>
         </Link>
 
         <Link
           href="/dashboard/audit"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 hover:border-[#11100E] transition block space-y-1.5"
+          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 hover:border-[#EA580C] transition block space-y-1.5"
         >
-          <span className="text-xs font-bold text-[#8C6A3B] uppercase">Compliance</span>
+          <span className="text-xs font-bold text-[#EA580C] uppercase">Compliance</span>
           <div className="text-sm font-black text-[#11100E]">Full Security Audit Log &rarr;</div>
           <p className="text-xs text-[#5A554C]">Inspect every database write & agent event</p>
         </Link>

@@ -169,10 +169,10 @@ export function RevenueClient({
         </div>
 
         <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C6A3B]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#EA580C]">
             Receivable / Unpaid
           </span>
-          <div className="mt-1.5 text-2xl font-black text-[#8C6A3B] tabular-nums">
+          <div className="mt-1.5 text-2xl font-black text-[#EA580C] tabular-nums">
             ₹{unpaidBalance.toLocaleString('en-IN')}
           </div>
           <span className="text-xs text-[#5A554C]">
@@ -180,8 +180,8 @@ export function RevenueClient({
           </span>
         </div>
 
-        <div className="rounded-2xl border border-[#11100E] bg-[#11100E] p-5 shadow-sm text-[#FAF6EE]">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#C8B9A0]">
+        <div className="rounded-2xl border-2 border-[#EA580C] bg-[#11100E] p-5 shadow-sm text-[#FAF6EE]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#FB923C]">
             Verified Cash Collected
           </span>
           <div className="mt-1.5 text-2xl font-black text-[#FAF6EE] tabular-nums">
@@ -218,7 +218,7 @@ export function RevenueClient({
                 setSelectedInvoiceId(pendingInvoices[0]?.id || '');
                 setIsPaymentModalOpen(true);
               }}
-              className="rounded-xl bg-[#11100E] px-4 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-40"
+              className="rounded-xl bg-[#EA580C] px-4 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-40"
             >
               + Record Payment
             </button>

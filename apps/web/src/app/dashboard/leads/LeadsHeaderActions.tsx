@@ -32,7 +32,7 @@ export function LeadsHeaderActions({ existingLeads }: LeadsHeaderActionsProps) {
       <button
         type="button"
         onClick={() => setIsAddOpen(true)}
-        className="rounded-xl bg-[#11100E] px-4 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420] shadow-sm"
+        className="rounded-xl bg-[#EA580C] px-4 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] shadow-sm"
       >
         + Add Prospect
       </button>

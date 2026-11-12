@@ -55,7 +55,7 @@ export default async function AuditLogPage() {
                       </td>
                       <td className="py-3 px-4 font-bold text-[#11100E]">{log.action}</td>
                       <td className="py-3 px-4 text-[#5A554C]">
-                        <span className="text-[#8C6A3B]">{log.actor_type}</span>: {log.actor_id}
+                        <span className="text-[#C2410C]">{log.actor_type}</span>: {log.actor_id}
                       </td>
                       <td className="py-3 px-4 text-[#5A554C]">
                         {log.object_type}:{String(log.object_id || '').slice(0, 14)}

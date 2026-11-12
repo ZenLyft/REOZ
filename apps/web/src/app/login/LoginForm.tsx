@@ -10,7 +10,7 @@ function SubmitButton({ lockedOut }: { lockedOut?: boolean }) {
     <button
       type="submit"
       disabled={pending || lockedOut}
-      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-[#FAF6EE] bg-[#11100E] hover:bg-[#272420] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#11100E] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-[#FAF6EE] bg-[#EA580C] hover:bg-[#C2410C] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#EA580C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {pending ? 'Authenticating...' : 'Sign In to Dashboard'}
     </button>

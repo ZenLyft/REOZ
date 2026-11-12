@@ -70,7 +70,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
 
   const stageBadgeColors: Record<PipelineStage, string> = {
     discovered: 'bg-[#F4EEE3] text-[#5A554C] border-[#DDD4C4]',
-    qualified: 'bg-[#11100E] text-[#FAF6EE] border-[#11100E]',
+    qualified: 'bg-[#11100E] text-[#FAF6EE] border-[#EA580C]',
     contacted: 'bg-sky-50 text-sky-900 border-sky-200',
     replied: 'bg-amber-50 text-amber-900 border-amber-200',
     proposal: 'bg-purple-50 text-purple-900 border-purple-200',
@@ -91,7 +91,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search leads by name, category, or city..."
-            className="w-full rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-4 py-2.5 text-sm text-[#11100E] placeholder-[#7C756A] focus:border-[#11100E] focus:outline-none"
+            className="w-full rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-4 py-2.5 text-sm text-[#11100E] placeholder-[#7C756A] focus:border-[#EA580C] focus:outline-none"
           />
         </div>
 
@@ -100,7 +100,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
           <select
             value={filterStage}
             onChange={(e) => setFilterStage(e.target.value)}
-            className="rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-3 py-2 text-sm text-[#11100E] focus:border-[#11100E] focus:outline-none"
+            className="rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-3 py-2 text-sm text-[#11100E] focus:border-[#EA580C] focus:outline-none"
           >
             <option value="all">All Stages ({leads.length})</option>
             <option value="discovered">Discovered</option>
@@ -177,7 +177,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                             e.target.value as PipelineStage
                           )
                         }
-                        className="rounded-lg border border-[#DDD4C4] bg-[#FAF6EE] px-2.5 py-1 text-xs text-[#11100E] focus:border-[#11100E] focus:outline-none disabled:opacity-40"
+                        className="rounded-lg border border-[#DDD4C4] bg-[#FAF6EE] px-2.5 py-1 text-xs text-[#11100E] focus:border-[#EA580C] focus:outline-none disabled:opacity-40"
                       >
                         <option value={lead.pipeline_stage} disabled>
                           Move stage...
@@ -192,7 +192,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                     <td className="px-5 py-4 text-right">
                       <a
                         href={`/dashboard/leads/${lead.id}`}
-                        className="rounded-lg border border-[#DDD4C4] bg-[#F4EEE3] px-3 py-1.5 text-xs font-bold text-[#11100E] hover:bg-[#11100E] hover:text-[#FAF6EE] transition"
+                        className="rounded-lg border border-[#DDD4C4] bg-[#F4EEE3] px-3 py-1.5 text-xs font-bold text-[#11100E] hover:bg-[#EA580C] hover:border-[#EA580C] hover:text-[#FAF6EE] transition"
                       >
                         Inspect &rarr;
                       </a>
@@ -260,7 +260,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
 
                   <a
                     href={`/dashboard/leads/${lead.id}`}
-                    className="rounded-xl bg-[#11100E] px-3.5 py-2 text-xs font-bold text-[#FAF6EE]"
+                    className="rounded-xl bg-[#EA580C] px-3.5 py-2 text-xs font-bold text-[#FAF6EE]"
                   >
                     View Lead &rarr;
                   </a>

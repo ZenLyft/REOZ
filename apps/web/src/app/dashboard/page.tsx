@@ -108,13 +108,13 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/dashboard/ascension"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#11100E] text-[#FAF6EE] hover:bg-[#272420] transition shadow-sm"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#EA580C] text-[#FAF6EE] hover:bg-[#C2410C] transition shadow-sm"
           >
             Find Clients Worldwide
           </Link>
           <Link
             href="/dashboard/approvals"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#DDD4C4] bg-[#F4EEE3] text-[#11100E] hover:bg-[#EAE1D2] transition"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#11100E] bg-[#11100E] text-[#FAF6EE] hover:bg-[#272420] transition"
           >
             Approvals ({approvalsCount})
           </Link>
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           href="/dashboard/leads"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#11100E] transition block"
+          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
         >
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
             Discovered Leads
@@ -140,12 +140,12 @@ export default async function DashboardPage() {
 
         <Link
           href="/dashboard/approvals"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#11100E] transition block"
+          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
         >
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
             Pending Approvals
           </div>
-          <div className="text-3xl font-black text-[#8C6A3B] mt-2 tabular-nums">
+          <div className="text-3xl font-black text-[#EA580C] mt-2 tabular-nums">
             {approvalsCount}
           </div>
           <div className="text-xs text-[#5A554C] mt-1">Ready for 1-tap sign-off</div>
@@ -153,7 +153,7 @@ export default async function DashboardPage() {
 
         <Link
           href="/dashboard/projects"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#11100E] transition block"
+          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
         >
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
             Active Clients & Won
@@ -168,9 +168,9 @@ export default async function DashboardPage() {
 
         <Link
           href="/dashboard/revenue"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#11100E] p-5 shadow-sm hover:bg-[#1E1C18] transition block text-[#FAF6EE]"
+          className="rounded-2xl border-2 border-[#EA580C] bg-[#11100E] p-5 shadow-sm hover:bg-[#1E1C18] transition block text-[#FAF6EE]"
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#C8B9A0]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#FB923C]">
             Verified Cash Collected
           </div>
           <div className="text-3xl font-black text-[#FAF6EE] mt-2 tabular-nums">
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
       <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 shadow-sm space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#E5DDD0] pb-4">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8C6A3B]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#EA580C]">
               Acquisition Velocity Target
             </span>
             <h2 className="text-base font-bold text-[#11100E]">
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
             </div>
             <div className="h-2.5 w-full rounded-full bg-[#EFE7DA] overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#11100E] transition-all duration-500"
+                className="h-full rounded-full bg-[#EA580C] transition-all duration-500"
                 style={{ width: `${cohortKpis.weekly_leads_progress_pct}%` }}
               />
             </div>
@@ -248,7 +248,7 @@ export default async function DashboardPage() {
             <span className="text-[#5A554C]">{cohortKpis.bottleneck_diagnosis}</span>
           </div>
           <div>
-            <span className="font-bold text-[#8C6A3B]">Recommended Action: </span>
+            <span className="font-bold text-[#EA580C]">Recommended Action: </span>
             <span className="text-[#11100E]">{cohortKpis.recommended_corrective_action}</span>
           </div>
         </div>
@@ -318,7 +318,7 @@ export default async function DashboardPage() {
           </div>
           <Link
             href="/dashboard/audit"
-            className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#8C6A3B]"
+            className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#EA580C]"
           >
             View All &rarr;
           </Link>

@@ -58,7 +58,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
               onClick={() => setSelectedCategory(cat.id)}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition ${
                 selectedCategory === cat.id
-                  ? 'bg-[#11100E] border-[#11100E] text-[#FAF6EE]'
+                  ? 'bg-[#11100E] border-[#EA580C] text-[#FAF6EE]'
                   : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
               }`}
             >
@@ -90,7 +90,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="inline-block rounded-full border border-[#DDD4C4] bg-[#FAF6EE] px-2.5 py-0.5 text-[10px] font-bold text-[#8C6A3B] uppercase tracking-wider">
+                  <span className="inline-block rounded-full border border-[#FDBA74] bg-[#FFF0E6] px-2.5 py-0.5 text-[10px] font-bold text-[#C2410C] uppercase tracking-wider">
                     {item.category_label}
                   </span>
                   <h3 className="mt-1.5 text-base font-bold text-[#11100E]">{item.name}</h3>
@@ -120,7 +120,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-[#7C756A]">Floor Price</div>
-                  <div className="mt-0.5 text-sm font-black text-[#8C6A3B]">
+                  <div className="mt-0.5 text-sm font-black text-[#EA580C]">
                     ₹{item.minimum_approved_price_inr.toLocaleString('en-IN')}
                   </div>
                 </div>
