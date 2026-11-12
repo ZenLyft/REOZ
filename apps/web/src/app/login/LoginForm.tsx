@@ -10,7 +10,7 @@ function SubmitButton({ lockedOut }: { lockedOut?: boolean }) {
     <button
       type="submit"
       disabled={pending || lockedOut}
-      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-[#FAF6EE] bg-[#EA580C] hover:bg-[#C2410C] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#EA580C] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-[#F5F6F8] bg-[#FF6B35] hover:bg-[#E05220] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FF6B35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {pending ? 'Authenticating...' : 'Sign In to Dashboard'}
     </button>
@@ -43,7 +43,7 @@ export default function LoginForm({ returnUrl }: { returnUrl?: string }) {
       <div>
         <label
           htmlFor="email"
-          className="block text-xs font-bold uppercase tracking-wider text-[#5A554C]"
+          className="block text-xs font-bold uppercase tracking-wider text-[#525A6B]"
         >
           Founder Email
         </label>
@@ -55,7 +55,7 @@ export default function LoginForm({ returnUrl }: { returnUrl?: string }) {
             autoComplete="email"
             required
             placeholder="niresh@zenlyft.in"
-            className="appearance-none block w-full px-3.5 py-2.5 border border-[#DDD4C4] bg-[#FAF6EE] text-[#11100E] rounded-xl placeholder-[#7C756A] focus:outline-none focus:ring-1 focus:ring-[#11100E] focus:border-[#11100E] text-sm"
+            className="appearance-none block w-full px-3.5 py-2.5 border border-[#D0D5DD] bg-[#F5F6F8] text-[#151B2B] rounded-xl placeholder-[#667085] focus:outline-none focus:ring-1 focus:ring-[#151B2B] focus:border-[#151B2B] text-sm"
           />
         </div>
         {state.fieldErrors?.email && (
@@ -66,7 +66,7 @@ export default function LoginForm({ returnUrl }: { returnUrl?: string }) {
       <div>
         <label
           htmlFor="password"
-          className="block text-xs font-bold uppercase tracking-wider text-[#5A554C]"
+          className="block text-xs font-bold uppercase tracking-wider text-[#525A6B]"
         >
           Password
         </label>
@@ -78,7 +78,7 @@ export default function LoginForm({ returnUrl }: { returnUrl?: string }) {
             autoComplete="current-password"
             required
             placeholder="••••••••••••"
-            className="appearance-none block w-full px-3.5 py-2.5 border border-[#DDD4C4] bg-[#FAF6EE] text-[#11100E] rounded-xl placeholder-[#7C756A] focus:outline-none focus:ring-1 focus:ring-[#11100E] focus:border-[#11100E] text-sm"
+            className="appearance-none block w-full px-3.5 py-2.5 border border-[#D0D5DD] bg-[#F5F6F8] text-[#151B2B] rounded-xl placeholder-[#667085] focus:outline-none focus:ring-1 focus:ring-[#151B2B] focus:border-[#151B2B] text-sm"
           />
         </div>
         {state.fieldErrors?.password && (

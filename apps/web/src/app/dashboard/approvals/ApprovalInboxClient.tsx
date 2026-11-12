@@ -130,10 +130,10 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
   return (
     <div className="space-y-4">
       {/* Live OpenWA Dispatch Line Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-4 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-sm font-bold text-[#11100E]">
+            <span className="text-sm font-bold text-[#151B2B]">
               WhatsApp Outbound Engine ({gatewayStatus?.phone || '+91 80159 29139'})
             </span>
             <span
@@ -142,7 +142,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                   ? 'bg-red-50 text-red-800 border-red-200'
                   : isOpenWaReady
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-[#F4EEE3] text-[#5A554C] border-[#DDD4C4]'
+                  : 'bg-[#ECEFF3] text-[#525A6B] border-[#D0D5DD]'
               }`}
             >
               {gatewayStatus?.emergencyStopActive
@@ -152,7 +152,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                 : 'Manual WhatsApp Deep-Link Ready'}
             </span>
           </div>
-          <p className="text-xs text-[#5A554C] mt-1">
+          <p className="text-xs text-[#525A6B] mt-1">
             Approve any draft below to unlock direct WhatsApp dispatch or 1-click Web/App handoff.
           </p>
         </div>
@@ -161,7 +161,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
           type="button"
           disabled={checkingGateway}
           onClick={checkGateway}
-          className="self-start sm:self-auto rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3.5 py-2 text-xs font-bold text-[#11100E] hover:bg-[#EFE7DA] transition"
+          className="self-start sm:self-auto rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3.5 py-2 text-xs font-bold text-[#151B2B] hover:bg-[#ECEFF3] transition"
         >
           {checkingGateway ? 'Checking...' : 'Refresh Line'}
         </button>
@@ -184,15 +184,15 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
 
       {/* Approvals List */}
       {approvals.length === 0 ? (
-        <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-10 text-center space-y-2">
-          <p className="text-base font-bold text-[#11100E]">Approval Inbox is Empty</p>
-          <p className="text-xs text-[#5A554C]">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-10 text-center space-y-2">
+          <p className="text-base font-bold text-[#151B2B]">Approval Inbox is Empty</p>
+          <p className="text-xs text-[#525A6B]">
             Run Global Client Finder to discover institutions and auto-generate outreach drafts here.
           </p>
           <div className="pt-2">
             <Link
               href="/dashboard/ascension"
-              className="inline-block rounded-xl bg-[#11100E] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420]"
+              className="inline-block rounded-xl bg-[#151B2B] px-5 py-2.5 text-xs font-bold text-[#F5F6F8] hover:bg-[#2B313C]"
             >
               Find Clients Now &rarr;
             </Link>
@@ -204,18 +204,18 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
           return (
             <div
               key={item.id}
-              className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm transition hover:border-[#CBBDA7]"
+              className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm transition hover:border-[#D0D5DD]"
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#EFE7DA] pb-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-[#ECEFF3] pb-3">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#C2410C]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E05220]">
                     {item.action_type.replace(/_/g, ' ')}
                     {item.location ? ` • ${item.location}` : ''}
                   </span>
-                  <h3 className="text-base font-bold text-[#11100E]">{item.organisation_name}</h3>
-                  <p className="text-xs text-[#5A554C]">
-                    Recipient: <strong className="text-[#11100E]">{item.recipient}</strong> via{' '}
-                    <span className="capitalize font-medium text-[#11100E]">{item.channel}</span>
+                  <h3 className="text-base font-bold text-[#151B2B]">{item.organisation_name}</h3>
+                  <p className="text-xs text-[#525A6B]">
+                    Recipient: <strong className="text-[#151B2B]">{item.recipient}</strong> via{' '}
+                    <span className="capitalize font-medium text-[#151B2B]">{item.channel}</span>
                   </p>
                 </div>
 
@@ -233,18 +233,18 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
               </div>
 
               <div className="mt-4">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                   Draft Content (SHA-256 Verified)
                 </label>
-                <div className="mt-1.5 rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-4 text-xs text-[#11100E] whitespace-pre-wrap leading-relaxed">
+                <div className="mt-1.5 rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-4 text-xs text-[#151B2B] whitespace-pre-wrap leading-relaxed">
                   {item.draft_content}
                 </div>
-                <div className="mt-1 text-[10px] font-mono text-[#7C756A] truncate">
+                <div className="mt-1 text-[10px] font-mono text-[#667085] truncate">
                   Hash: {item.payload_hash}
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#EFE7DA] pt-4">
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#ECEFF3] pt-4">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -253,14 +253,14 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                       setCopiedId(item.id);
                       setTimeout(() => setCopiedId(null), 2000);
                     }}
-                    className="rounded-xl border border-[#DDD4C4] bg-[#F4EEE3] px-3.5 py-2 text-xs font-semibold text-[#11100E] hover:bg-[#EAE1D2]"
+                    className="rounded-xl border border-[#D0D5DD] bg-[#ECEFF3] px-3.5 py-2 text-xs font-semibold text-[#151B2B] hover:bg-[#E2E6EC]"
                   >
                     {copiedId === item.id ? '✓ Copied' : 'Copy Text'}
                   </button>
                   {item.lead_id && (
                     <Link
                       href={`/dashboard/leads/${item.lead_id}`}
-                      className="rounded-xl border border-[#E5DDD0] bg-[#FFFDF9] px-3 py-2 text-xs font-semibold text-[#5A554C] hover:text-[#11100E]"
+                      className="rounded-xl border border-[#E4E7EC] bg-[#FFFFFF] px-3 py-2 text-xs font-semibold text-[#525A6B] hover:text-[#151B2B]"
                     >
                       View Lead
                     </Link>
@@ -282,7 +282,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                         type="button"
                         disabled={processingId === item.id}
                         onClick={() => handleApprove(item)}
-                        className="rounded-xl bg-[#EA580C] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C]"
+                        className="rounded-xl bg-[#FF6B35] px-5 py-2 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220]"
                       >
                         {processingId === item.id ? 'Approving...' : 'Approve Draft'}
                       </button>
@@ -296,7 +296,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                           type="button"
                           disabled={processingId === item.id}
                           onClick={() => handleAutomatedSend(item)}
-                          className="rounded-xl bg-[#11100E] px-4 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#272420]"
+                          className="rounded-xl bg-[#151B2B] px-4 py-2 text-xs font-bold text-[#F5F6F8] hover:bg-[#2B313C]"
                         >
                           {processingId === item.id ? 'Sending...' : 'Auto-Send via OpenWA'}
                         </button>
@@ -305,7 +305,7 @@ export function ApprovalInboxClient({ initialApprovals }: ApprovalInboxClientPro
                         href={getSendDeepLink(item)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-emerald-800"
+                        className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-[#F5F6F8] hover:bg-emerald-800"
                       >
                         Open {item.channel === 'whatsapp' ? 'WhatsApp' : 'Mail'} &rarr;
                       </a>

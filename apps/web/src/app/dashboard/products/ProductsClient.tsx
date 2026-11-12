@@ -58,8 +58,8 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
               onClick={() => setSelectedCategory(cat.id)}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition ${
                 selectedCategory === cat.id
-                  ? 'bg-[#11100E] border-[#EA580C] text-[#FAF6EE]'
-                  : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
+                  ? 'bg-[#151B2B] border-[#FF6B35] text-[#F5F6F8]'
+                  : 'bg-[#FFFFFF] border-[#D0D5DD] text-[#525A6B] hover:bg-[#ECEFF3] hover:text-[#151B2B]'
               }`}
             >
               {cat.label}
@@ -72,7 +72,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search products or customers..."
-          className="rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-3.5 py-2 text-xs text-[#11100E] placeholder-[#7C756A] focus:border-[#11100E] focus:outline-none"
+          className="rounded-xl border border-[#D0D5DD] bg-[#FFFFFF] px-3.5 py-2 text-xs text-[#151B2B] placeholder-[#667085] focus:border-[#151B2B] focus:outline-none"
         />
       </div>
 
@@ -84,17 +84,17 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
               key={item.id}
               className={`rounded-2xl border p-5 shadow-sm transition ${
                 item.is_active
-                  ? 'border-[#E5DDD0] bg-[#FFFDF9]'
-                  : 'border-[#E5DDD0] bg-[#F4EEE3] opacity-70'
+                  ? 'border-[#E4E7EC] bg-[#FFFFFF]'
+                  : 'border-[#E4E7EC] bg-[#ECEFF3] opacity-70'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="inline-block rounded-full border border-[#FDBA74] bg-[#FFF0E6] px-2.5 py-0.5 text-[10px] font-bold text-[#C2410C] uppercase tracking-wider">
+                  <span className="inline-block rounded-full border border-[#FFCBB8] bg-[#FFF1EC] px-2.5 py-0.5 text-[10px] font-bold text-[#E05220] uppercase tracking-wider">
                     {item.category_label}
                   </span>
-                  <h3 className="mt-1.5 text-base font-bold text-[#11100E]">{item.name}</h3>
-                  <p className="mt-1 text-xs text-[#5A554C] line-clamp-2">{item.description}</p>
+                  <h3 className="mt-1.5 text-base font-bold text-[#151B2B]">{item.name}</h3>
+                  <p className="mt-1 text-xs text-[#525A6B] line-clamp-2">{item.description}</p>
                 </div>
 
                 <button
@@ -104,44 +104,44 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
                   className={`rounded-full px-3 py-1 text-[11px] font-bold border ${
                     item.is_active
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : 'border-[#DDD4C4] bg-[#FAF6EE] text-[#5A554C]'
+                      : 'border-[#D0D5DD] bg-[#F5F6F8] text-[#525A6B]'
                   }`}
                 >
                   {updatingId === item.id ? 'Saving...' : item.is_active ? 'Active' : 'Inactive'}
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-3 text-center">
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-3 text-center">
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#7C756A]">List Price</div>
-                  <div className="mt-0.5 text-sm font-black text-[#11100E]">
+                  <div className="text-[10px] uppercase font-bold text-[#667085]">List Price</div>
+                  <div className="mt-0.5 text-sm font-black text-[#151B2B]">
                     ₹{item.recommended_price_inr.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#7C756A]">Floor Price</div>
-                  <div className="mt-0.5 text-sm font-black text-[#EA580C]">
+                  <div className="text-[10px] uppercase font-bold text-[#667085]">Floor Price</div>
+                  <div className="mt-0.5 text-sm font-black text-[#FF6B35]">
                     ₹{item.minimum_approved_price_inr.toLocaleString('en-IN')}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-[#7C756A]">Max Discount</div>
-                  <div className="mt-0.5 text-sm font-black text-[#11100E]">
+                  <div className="text-[10px] uppercase font-bold text-[#667085]">Max Discount</div>
+                  <div className="mt-0.5 text-sm font-black text-[#151B2B]">
                     {item.maximum_approved_discount_percent}%
                   </div>
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between text-[11px] text-[#5A554C]">
+              <div className="mt-3 flex items-center justify-between text-[11px] text-[#525A6B]">
                 <span>Target: {item.target_customer}</span>
                 <span>{item.implementation_time_days} days delivery</span>
               </div>
 
               {isExpanded && (
-                <div className="mt-4 space-y-3 border-t border-[#EFE7DA] pt-3 text-xs">
+                <div className="mt-4 space-y-3 border-t border-[#ECEFF3] pt-3 text-xs">
                   <div>
-                    <h4 className="font-bold text-[#11100E]">Deliverables Included:</h4>
-                    <ul className="mt-1 list-disc list-inside space-y-0.5 text-[#5A554C]">
+                    <h4 className="font-bold text-[#151B2B]">Deliverables Included:</h4>
+                    <ul className="mt-1 list-disc list-inside space-y-0.5 text-[#525A6B]">
                       {item.deliverables.map((d, i) => (
                         <li key={i}>{d}</li>
                       ))}
@@ -149,24 +149,24 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-[#11100E]">Payment Terms:</h4>
-                    <p className="mt-0.5 text-[#5A554C]">{item.payment_terms}</p>
+                    <h4 className="font-bold text-[#151B2B]">Payment Terms:</h4>
+                    <p className="mt-0.5 text-[#525A6B]">{item.payment_terms}</p>
                   </div>
 
                   <div>
-                    <h4 className="font-bold text-[#11100E]">Maintenance Options:</h4>
-                    <p className="mt-0.5 text-[#5A554C]">{item.maintenance_options}</p>
+                    <h4 className="font-bold text-[#151B2B]">Maintenance Options:</h4>
+                    <p className="mt-0.5 text-[#525A6B]">{item.maintenance_options}</p>
                   </div>
 
                   {item.faqs.length > 0 && (
                     <div>
-                      <h4 className="font-bold text-[#11100E]">Approved FAQs:</h4>
+                      <h4 className="font-bold text-[#151B2B]">Approved FAQs:</h4>
                       {item.faqs.map((faq, i) => (
                         <div
                           key={i}
-                          className="mt-1 rounded-lg bg-[#FAF6EE] border border-[#E5DDD0] p-2 text-[#5A554C]"
+                          className="mt-1 rounded-lg bg-[#F5F6F8] border border-[#E4E7EC] p-2 text-[#525A6B]"
                         >
-                          <p className="font-bold text-[#11100E]">Q: {faq.q}</p>
+                          <p className="font-bold text-[#151B2B]">Q: {faq.q}</p>
                           <p className="mt-0.5">A: {faq.a}</p>
                         </div>
                       ))}
@@ -178,7 +178,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: ProductCa
               <button
                 type="button"
                 onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                className="mt-4 w-full rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] py-1.5 text-center text-xs font-bold text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]"
+                className="mt-4 w-full rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] py-1.5 text-center text-xs font-bold text-[#525A6B] hover:bg-[#ECEFF3] hover:text-[#151B2B]"
               >
                 {isExpanded ? 'Hide Details ▲' : 'View Deliverables & Rules ▼'}
               </button>

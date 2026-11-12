@@ -4,6 +4,10 @@ import {
   fetchAscensionSnapshot,
 } from '@/lib/integrations/ascension-client';
 import { syncPipelineResultsToCrm } from '@/lib/integrations/ascension-sync';
+import {
+  resolveDiscoveryCity,
+  safeParseJson,
+} from '@/lib/integrations/global-discovery';
 
 describe('ZenLyft Ascension Cloud Control Plane Client', () => {
   it('defines all 59 specialist roles across 9 departments with 5 initial active roles', () => {
@@ -63,6 +67,23 @@ describe('ZenLyft Ascension Cloud Control Plane Client', () => {
       if (prevUrl !== undefined) process.env.NEXT_PUBLIC_SUPABASE_URL = prevUrl;
       if (prevKey !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = prevKey;
     }
+  });
+
+  it('safely handles <!DOCTYPE html> upstream error pages without crashing JSON.parse', async () => {
+    const htmlRes = new Response('<!DOCTYPE html><html><body>502 Waking</body></html>', {
+      status: 502,
+      headers: { 'Content-Type': 'text/html' },
+    });
+    const parsed = await safeParseJson(htmlRes);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.status).toBe(502);
+    expect(parsed.data).toBeNull();
+  });
+
+  it('resolves regional keys to hub cities and preserves custom city names', () => {
+    const eurCity = resolveDiscoveryCity('europe');
+    expect(['London', 'Berlin', 'Amsterdam', 'Dublin']).toContain(eurCity);
+    expect(resolveDiscoveryCity('Melbourne')).toBe('Melbourne');
   });
 });
 

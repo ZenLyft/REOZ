@@ -69,15 +69,15 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
   }
 
   const stageBadgeColors: Record<PipelineStage, string> = {
-    discovered: 'bg-[#F4EEE3] text-[#5A554C] border-[#DDD4C4]',
-    qualified: 'bg-[#11100E] text-[#FAF6EE] border-[#EA580C]',
+    discovered: 'bg-[#ECEFF3] text-[#525A6B] border-[#D0D5DD]',
+    qualified: 'bg-[#151B2B] text-[#F5F6F8] border-[#FF6B35]',
     contacted: 'bg-sky-50 text-sky-900 border-sky-200',
     replied: 'bg-amber-50 text-amber-900 border-amber-200',
     proposal: 'bg-purple-50 text-purple-900 border-purple-200',
     won: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     lost: 'bg-red-50 text-red-800 border-red-200',
-    not_a_fit: 'bg-[#F4EEE3] text-[#7C756A] border-[#E5DDD0]',
-    do_not_contact: 'bg-red-700 text-[#FAF6EE] border-red-800',
+    not_a_fit: 'bg-[#ECEFF3] text-[#667085] border-[#E4E7EC]',
+    do_not_contact: 'bg-red-700 text-[#F5F6F8] border-red-800',
     on_hold: 'bg-amber-50 text-amber-800 border-amber-200',
   };
 
@@ -91,16 +91,16 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search leads by name, category, or city..."
-            className="w-full rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-4 py-2.5 text-sm text-[#11100E] placeholder-[#7C756A] focus:border-[#EA580C] focus:outline-none"
+            className="w-full rounded-xl border border-[#D0D5DD] bg-[#FFFFFF] px-4 py-2.5 text-sm text-[#151B2B] placeholder-[#667085] focus:border-[#FF6B35] focus:outline-none"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs font-bold text-[#5A554C]">Stage:</label>
+          <label className="text-xs font-bold text-[#525A6B]">Stage:</label>
           <select
             value={filterStage}
             onChange={(e) => setFilterStage(e.target.value)}
-            className="rounded-xl border border-[#DDD4C4] bg-[#FFFDF9] px-3 py-2 text-sm text-[#11100E] focus:border-[#EA580C] focus:outline-none"
+            className="rounded-xl border border-[#D0D5DD] bg-[#FFFFFF] px-3 py-2 text-sm text-[#151B2B] focus:border-[#FF6B35] focus:outline-none"
           >
             <option value="all">All Stages ({leads.length})</option>
             <option value="discovered">Discovered</option>
@@ -116,9 +116,9 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden overflow-hidden rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] md:block shadow-sm">
-        <table className="w-full text-left text-sm text-[#11100E]">
-          <thead className="border-b border-[#E5DDD0] bg-[#FAF6EE] text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+      <div className="hidden overflow-hidden rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] md:block shadow-sm">
+        <table className="w-full text-left text-sm text-[#151B2B]">
+          <thead className="border-b border-[#E4E7EC] bg-[#F5F6F8] text-[11px] font-bold uppercase tracking-wider text-[#667085]">
             <tr>
               <th className="px-5 py-3.5">Organisation</th>
               <th className="px-4 py-3.5">Category & Location</th>
@@ -128,10 +128,10 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
               <th className="px-5 py-3.5 text-right">Details</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#EFE7DA]">
+          <tbody className="divide-y divide-[#ECEFF3]">
             {filteredLeads.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-[#7C756A]">
+                <td colSpan={6} className="px-5 py-8 text-center text-[#667085]">
                   No prospects found matching your filter.
                 </td>
               </tr>
@@ -139,9 +139,9 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
               filteredLeads.map((lead) => {
                 const allowedTransitions = VALID_TRANSITIONS[lead.pipeline_stage] || [];
                 return (
-                  <tr key={lead.id} className="hover:bg-[#FAF6EE]">
+                  <tr key={lead.id} className="hover:bg-[#F5F6F8]">
                     <td className="px-5 py-4">
-                      <div className="font-bold text-[#11100E]">{lead.organisation_name}</div>
+                      <div className="font-bold text-[#151B2B]">{lead.organisation_name}</div>
                       {lead.contact_restriction === 'do_not_contact' && (
                         <span className="mt-0.5 inline-block rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
                           DNC RESTRICTED
@@ -149,11 +149,11 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      <div className="text-[#11100E] font-medium">{lead.category}</div>
-                      <div className="text-xs text-[#5A554C]">{lead.location}</div>
+                      <div className="text-[#151B2B] font-medium">{lead.category}</div>
+                      <div className="text-xs text-[#525A6B]">{lead.location}</div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="font-mono text-xs font-bold text-[#11100E]">
+                      <span className="font-mono text-xs font-bold text-[#151B2B]">
                         {lead.score ?? '—'}/100
                       </span>
                     </td>
@@ -177,7 +177,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                             e.target.value as PipelineStage
                           )
                         }
-                        className="rounded-lg border border-[#DDD4C4] bg-[#FAF6EE] px-2.5 py-1 text-xs text-[#11100E] focus:border-[#EA580C] focus:outline-none disabled:opacity-40"
+                        className="rounded-lg border border-[#D0D5DD] bg-[#F5F6F8] px-2.5 py-1 text-xs text-[#151B2B] focus:border-[#FF6B35] focus:outline-none disabled:opacity-40"
                       >
                         <option value={lead.pipeline_stage} disabled>
                           Move stage...
@@ -192,7 +192,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                     <td className="px-5 py-4 text-right">
                       <a
                         href={`/dashboard/leads/${lead.id}`}
-                        className="rounded-lg border border-[#DDD4C4] bg-[#F4EEE3] px-3 py-1.5 text-xs font-bold text-[#11100E] hover:bg-[#EA580C] hover:border-[#EA580C] hover:text-[#FAF6EE] transition"
+                        className="rounded-lg border border-[#D0D5DD] bg-[#ECEFF3] px-3 py-1.5 text-xs font-bold text-[#151B2B] hover:bg-[#FF6B35] hover:border-[#FF6B35] hover:text-[#F5F6F8] transition"
                       >
                         Inspect &rarr;
                       </a>
@@ -208,7 +208,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
       {/* Mobile Cards */}
       <div className="space-y-3 md:hidden">
         {filteredLeads.length === 0 ? (
-          <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 text-center text-[#7C756A]">
+          <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 text-center text-[#667085]">
             No leads found.
           </div>
         ) : (
@@ -217,12 +217,12 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
             return (
               <div
                 key={lead.id}
-                className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-4 shadow-sm"
+                className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-[#11100E]">{lead.organisation_name}</h3>
-                    <p className="text-xs text-[#5A554C]">
+                    <h3 className="font-bold text-[#151B2B]">{lead.organisation_name}</h3>
+                    <p className="text-xs text-[#525A6B]">
                       {lead.category} • {lead.location}
                     </p>
                   </div>
@@ -235,7 +235,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                   </span>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-[#EFE7DA] pt-3">
+                <div className="mt-3 flex items-center justify-between border-t border-[#ECEFF3] pt-3">
                   <select
                     disabled={updatingId === lead.id || allowedTransitions.length === 0}
                     value={lead.pipeline_stage}
@@ -246,7 +246,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
                         e.target.value as PipelineStage
                       )
                     }
-                    className="rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs font-medium text-[#11100E]"
+                    className="rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs font-medium text-[#151B2B]"
                   >
                     <option value={lead.pipeline_stage} disabled>
                       Change stage...
@@ -260,7 +260,7 @@ export function LeadsTableClient({ initialLeads }: LeadsTableClientProps) {
 
                   <a
                     href={`/dashboard/leads/${lead.id}`}
-                    className="rounded-xl bg-[#EA580C] px-3.5 py-2 text-xs font-bold text-[#FAF6EE]"
+                    className="rounded-xl bg-[#FF6B35] px-3.5 py-2 text-xs font-bold text-[#F5F6F8]"
                   >
                     View Lead &rarr;
                   </a>

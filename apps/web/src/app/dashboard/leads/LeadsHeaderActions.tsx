@@ -24,7 +24,7 @@ export function LeadsHeaderActions({ existingLeads }: LeadsHeaderActionsProps) {
       <button
         type="button"
         onClick={() => setIsCsvOpen(true)}
-        className="rounded-xl border border-[#DDD4C4] bg-[#F4EEE3] px-4 py-2.5 text-xs font-bold text-[#11100E] hover:bg-[#EAE1D2]"
+        className="rounded-xl border border-[#D0D5DD] bg-[#ECEFF3] px-4 py-2.5 text-xs font-bold text-[#151B2B] hover:bg-[#E2E6EC]"
       >
         Import CSV
       </button>
@@ -32,7 +32,7 @@ export function LeadsHeaderActions({ existingLeads }: LeadsHeaderActionsProps) {
       <button
         type="button"
         onClick={() => setIsAddOpen(true)}
-        className="rounded-xl bg-[#EA580C] px-4 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] shadow-sm"
+        className="rounded-xl bg-[#FF6B35] px-4 py-2.5 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220] shadow-sm"
       >
         + Add Prospect
       </button>

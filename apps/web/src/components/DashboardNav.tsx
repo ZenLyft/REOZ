@@ -30,8 +30,8 @@ export function DesktopNavLinks() {
             href={item.href}
             className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               isActive
-                ? 'bg-[#11100E] text-[#FAF6EE] shadow-sm border-b-2 border-[#EA580C]'
-                : 'text-[#5A554C] hover:text-[#11100E] hover:bg-[#EFE7DA]'
+                ? 'bg-[#151B2B] text-[#F5F6F8] shadow-sm border-b-2 border-[#FF6B35]'
+                : 'text-[#525A6B] hover:text-[#151B2B] hover:bg-[#ECEFF3]'
             }`}
           >
             {item.label}
@@ -53,7 +53,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFDF9]/95 backdrop-blur border-t border-[#E5DDD0] px-2 py-2 flex items-center justify-around">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFFFF]/95 backdrop-blur border-t border-[#E4E7EC] px-2 py-2 flex items-center justify-around">
       {mobileItems.map((item) => {
         const isActive = item.exact
           ? pathname === item.href
@@ -64,8 +64,8 @@ export function MobileBottomNav() {
             href={item.href}
             className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold transition ${
               isActive
-                ? 'bg-[#EA580C] text-[#FAF6EE]'
-                : 'text-[#5A554C] hover:text-[#11100E]'
+                ? 'bg-[#FF6B35] text-[#F5F6F8]'
+                : 'text-[#525A6B] hover:text-[#151B2B]'
             }`}
           >
             {item.label}

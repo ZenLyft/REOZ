@@ -13,11 +13,11 @@ export default async function AuditLogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#E5DDD0] pb-5">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+      <div className="border-b border-[#E4E7EC] pb-5">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
           Security & Activity Audit Log
         </h1>
-        <p className="mt-1 text-sm text-[#5A554C]">
+        <p className="mt-1 text-sm text-[#525A6B]">
           Immutable record tracking founder approvals, agent runs, client onboarding, and verified payments.
         </p>
       </div>
@@ -27,11 +27,11 @@ export default async function AuditLogPage() {
           Failed to load audit logs: {error.message}
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] overflow-hidden shadow-sm">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-[#E5DDD0] bg-[#FAF6EE] text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+                <tr className="border-b border-[#E4E7EC] bg-[#F5F6F8] text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                   <th className="py-3.5 px-4">Timestamp</th>
                   <th className="py-3.5 px-4">Action</th>
                   <th className="py-3.5 px-4">Actor</th>
@@ -40,24 +40,24 @@ export default async function AuditLogPage() {
                   <th className="py-3.5 px-4">Metadata</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EFE7DA] text-[#11100E] font-mono">
+              <tbody className="divide-y divide-[#ECEFF3] text-[#151B2B] font-mono">
                 {!logs || logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-[#7C756A] font-sans">
+                    <td colSpan={6} className="py-8 text-center text-[#667085] font-sans">
                       No audit events logged yet.
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-[#FAF6EE] transition">
-                      <td className="py-3 px-4 text-[#5A554C] whitespace-nowrap">
+                    <tr key={log.id} className="hover:bg-[#F5F6F8] transition">
+                      <td className="py-3 px-4 text-[#525A6B] whitespace-nowrap">
                         {new Date(log.timestamp).toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 font-bold text-[#11100E]">{log.action}</td>
-                      <td className="py-3 px-4 text-[#5A554C]">
-                        <span className="text-[#C2410C]">{log.actor_type}</span>: {log.actor_id}
+                      <td className="py-3 px-4 font-bold text-[#151B2B]">{log.action}</td>
+                      <td className="py-3 px-4 text-[#525A6B]">
+                        <span className="text-[#E05220]">{log.actor_type}</span>: {log.actor_id}
                       </td>
-                      <td className="py-3 px-4 text-[#5A554C]">
+                      <td className="py-3 px-4 text-[#525A6B]">
                         {log.object_type}:{String(log.object_id || '').slice(0, 14)}
                       </td>
                       <td className="py-3 px-4">
@@ -73,7 +73,7 @@ export default async function AuditLogPage() {
                           {log.result}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[11px] text-[#7C756A] max-w-xs truncate">
+                      <td className="py-3 px-4 text-[11px] text-[#667085] max-w-xs truncate">
                         {log.metadata_without_secrets
                           ? JSON.stringify(log.metadata_without_secrets)
                           : '—'}

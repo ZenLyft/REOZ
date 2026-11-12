@@ -9,7 +9,7 @@ export default function AscensionPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-sm text-[#5A554C]">Loading Global Client Finder...</div>
+        <div className="p-8 text-sm text-[#525A6B]">Loading Global Client Finder...</div>
       }
     >
       <AscensionClient />

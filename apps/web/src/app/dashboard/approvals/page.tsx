@@ -9,11 +9,11 @@ export default async function ApprovalsPage() {
   const [{ data: rawApprovals, error }, { data: drafts }] = await Promise.all([
     supabase
       .from('approvals')
-      .select('id, action_type, target_id, recipient, reason, payload_hash, status, created_at')
-      .order('created_at', { ascending: false }),
+      .select('id, action_type, target_id, recipient, reason, payload_hash, status, expires_at')
+      .order('expires_at', { ascending: false }),
     supabase
       .from('outreach_drafts')
-      .select('id, lead_id, content, channel, recipient'),
+      .select('id, lead_id, draft, channel, approved_recipient'),
   ]);
 
   const draftIds = (drafts || []).map((d) => d.lead_id).filter(Boolean);
@@ -42,7 +42,7 @@ export default async function ApprovalsPage() {
       reason: a.reason,
       payload_hash: a.payload_hash,
       status: a.status,
-      draft_content: draft?.content || a.reason || 'Draft message pending review.',
+      draft_content: draft?.draft || a.reason || 'Draft message pending review.',
       organisation_name: lead?.organisation_name || 'Verified Prospect',
       location: lead?.location || '',
       channel,
@@ -51,11 +51,11 @@ export default async function ApprovalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#E5DDD0] pb-5">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+      <div className="border-b border-[#E4E7EC] pb-5">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
           Founder Approval Inbox
         </h1>
-        <p className="mt-1 text-sm text-[#5A554C]">
+        <p className="mt-1 text-sm text-[#525A6B]">
           Zero-Trust 1-Tap Sign-off. Review AI-drafted WhatsApp outreach, approve cryptographically, and send directly from +91 80159 29139.
         </p>
       </div>

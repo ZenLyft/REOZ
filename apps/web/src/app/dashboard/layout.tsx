@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AIChatDrawer } from '@/components/AIChatDrawer';
 import { DesktopNavLinks, MobileBottomNav } from '@/components/DashboardNav';
+import { PwaPushControl } from '@/components/PwaPushControl';
 
 export default async function DashboardLayout({
   children,
@@ -14,20 +15,20 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-[#FAF6EE] text-[#11100E] flex flex-col pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#F5F6F8] text-[#151B2B] flex flex-col pb-20 lg:pb-0">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#FAF6EE]/95 backdrop-blur-md border-b border-[#E5DDD0]">
+      <header className="sticky top-0 z-40 bg-[#F5F6F8]/95 backdrop-blur-md border-b border-[#E4E7EC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Logo & Brand */}
           <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[#11100E] text-[#FAF6EE] font-black text-sm flex items-center justify-center shadow-sm tracking-tight border-b-2 border-[#EA580C]">
+            <div className="w-8 h-8 rounded-lg bg-[#151B2B] text-[#F5F6F8] font-black text-sm flex items-center justify-center shadow-sm tracking-tight border-b-2 border-[#FF6B35]">
               R
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-black text-[#11100E] tracking-tight text-sm sm:text-base">
+              <span className="font-black text-[#151B2B] tracking-tight text-sm sm:text-base">
                 REOZ
               </span>
-              <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFF0E6] text-[#C2410C] border border-[#FDBA74]">
+              <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFF1EC] text-[#E05220] border border-[#FFCBB8]">
                 ZenLyft HQ
               </span>
             </div>
@@ -36,15 +37,16 @@ export default async function DashboardLayout({
           {/* Desktop Condensed Working Tabs */}
           <DesktopNavLinks />
 
-          {/* User Badge & Sign Out */}
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="hidden sm:inline text-xs font-medium text-[#5A554C]">
+          {/* User Badge, iPhone Alerts & Sign Out */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <PwaPushControl />
+            <span className="hidden sm:inline text-xs font-medium text-[#525A6B]">
               {user?.email}
             </span>
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="text-xs font-semibold text-[#11100E] bg-[#FFFDF9] hover:bg-[#EFE7DA] px-3 py-1.5 rounded-lg border border-[#DDD4C4] transition-colors whitespace-nowrap"
+                className="text-xs font-semibold text-[#151B2B] bg-[#FFFFFF] hover:bg-[#ECEFF3] px-3 py-1.5 rounded-lg border border-[#D0D5DD] transition-colors whitespace-nowrap"
               >
                 Sign Out
               </button>

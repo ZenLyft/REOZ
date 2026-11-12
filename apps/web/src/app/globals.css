@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 17, 16, 14;
-  --background-start-rgb: 250, 246, 238;
-  --background-end-rgb: 243, 236, 224;
-  --surface-card: #fffdf9;
-  --surface-muted: #f2ebe0;
-  --border-warm: #e5ddd0;
-  --accent-orange: #ea580c;
+  --foreground-rgb: 21, 27, 43;
+  --background-start-rgb: 245, 246, 248;
+  --background-end-rgb: 255, 255, 255;
+  --surface-card: #ffffff;
+  --surface-muted: #eceff3;
+  --border-warm: #e4e7ec;
+  --accent-orange: #ff6b35;
 }
 
 body {
@@ -22,8 +22,8 @@ body {
 }
 
 ::selection {
-  background-color: #ea580c;
-  color: #faf6ee;
+  background-color: #ff6b35;
+  color: #f5f6f8;
 }
 
 /* Editorial warm custom scrollbar */
@@ -33,14 +33,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f3ece0;
+  background: #eceff3;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbbda7;
+  background: #d0d5dd;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9a8b73;
+  background: #667085;
 }

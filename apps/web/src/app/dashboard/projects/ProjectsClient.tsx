@@ -204,8 +204,8 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
               type="button"
               onClick={() => setSelectedProjectId(p.id)}
               className={`rounded-xl px-4 py-2 text-xs font-bold border transition ${activeProject?.id === p.id
-                  ? 'bg-[#11100E] border-2 border-[#EA580C] text-[#FAF6EE]'
-                  : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
+                  ? 'bg-[#151B2B] border-2 border-[#FF6B35] text-[#F5F6F8]'
+                  : 'bg-[#FFFFFF] border-[#D0D5DD] text-[#525A6B] hover:bg-[#ECEFF3] hover:text-[#151B2B]'
                 }`}
             >
               {p.clients?.organisation_name || p.name}
@@ -216,7 +216,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
         <button
           type="button"
           onClick={() => setIsCreatingModal(true)}
-          className="self-start sm:self-auto rounded-xl bg-[#EA580C] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] shadow-sm whitespace-nowrap"
+          className="self-start sm:self-auto rounded-xl bg-[#FF6B35] px-5 py-2.5 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220] shadow-sm whitespace-nowrap"
         >
           + Onboard Client
         </button>
@@ -224,22 +224,22 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
 
       {/* Empty State */}
       {!activeProject ? (
-        <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-10 text-center space-y-3">
-          <p className="text-base font-bold text-[#11100E]">No Active Client Projects Yet</p>
-          <p className="text-xs text-[#5A554C] max-w-md mx-auto">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-10 text-center space-y-3">
+          <p className="text-base font-bold text-[#151B2B]">No Active Client Projects Yet</p>
+          <p className="text-xs text-[#525A6B] max-w-md mx-auto">
             As soon as a prospect says yes, onboard them here to create their real delivery workspace, milestones, and initial 50% advance invoice.
           </p>
           <div className="pt-2 flex justify-center gap-3">
             <button
               type="button"
               onClick={() => setIsCreatingModal(true)}
-              className="rounded-xl bg-[#EA580C] px-5 py-2.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C]"
+              className="rounded-xl bg-[#FF6B35] px-5 py-2.5 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220]"
             >
               + Onboard First Paying Client
             </button>
             <Link
               href="/dashboard/leads"
-              className="rounded-xl border border-[#DDD4C4] bg-[#F4EEE3] px-4 py-2.5 text-xs font-bold text-[#11100E] hover:bg-[#EAE1D2]"
+              className="rounded-xl border border-[#D0D5DD] bg-[#ECEFF3] px-4 py-2.5 text-xs font-bold text-[#151B2B] hover:bg-[#E2E6EC]"
             >
               Review Leads &rarr;
             </Link>
@@ -248,16 +248,16 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Milestones */}
-          <div className="lg:col-span-2 rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#EFE7DA] pb-4">
+          <div className="lg:col-span-2 rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#ECEFF3] pb-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#C2410C]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#E05220]">
                   Live Client Delivery
                 </span>
-                <h2 className="text-xl font-black text-[#11100E]">
+                <h2 className="text-xl font-black text-[#151B2B]">
                   {activeProject.clients?.organisation_name || activeProject.name}
                 </h2>
-                <p className="text-xs text-[#5A554C] mt-0.5">
+                <p className="text-xs text-[#525A6B] mt-0.5">
                   {activeProject.service_line} • Started {activeProject.start_date}
                 </p>
               </div>
@@ -269,7 +269,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                 <select
                   value={activeProject.status}
                   onChange={(e) => handleUpdateStage(activeProject.id, e.target.value)}
-                  className="rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-1 text-xs font-bold text-[#11100E] focus:outline-none"
+                  className="rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-1 text-xs font-bold text-[#151B2B] focus:outline-none"
                 >
                   <option value="requirements">Stage: Requirements</option>
                   <option value="planning">Stage: Planning</option>
@@ -282,7 +282,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
             </div>
 
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#7C756A]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#667085]">
                 Delivery Milestones (Click to advance status)
               </h3>
               <div className="mt-3 space-y-2.5">
@@ -291,15 +291,15 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                     key={m.id}
                     type="button"
                     onClick={() => handleToggleMilestone(activeProject.id, m)}
-                    className="w-full flex items-center justify-between rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-3.5 text-left hover:border-[#EA580C] transition"
+                    className="w-full flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-3.5 text-left hover:border-[#FF6B35] transition"
                   >
                     <div className="flex items-center gap-3">
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${m.status === 'completed'
-                            ? 'bg-emerald-700 text-[#FAF6EE]'
+                            ? 'bg-emerald-700 text-[#F5F6F8]'
                             : m.status === 'in_progress'
-                              ? 'bg-[#EA580C] text-[#FAF6EE]'
-                              : 'bg-[#E5DDD0] text-[#5A554C]'
+                              ? 'bg-[#FF6B35] text-[#F5F6F8]'
+                              : 'bg-[#E4E7EC] text-[#525A6B]'
                           }`}
                       >
                         {m.status === 'completed' ? '✓' : i + 1}
@@ -307,14 +307,14 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                       <div>
                         <p
                           className={`text-xs font-bold ${m.status === 'completed'
-                              ? 'line-through text-[#7C756A]'
-                              : 'text-[#11100E]'
+                              ? 'line-through text-[#667085]'
+                              : 'text-[#151B2B]'
                             }`}
                         >
                           {m.title}
                         </p>
                         {m.due_date && (
-                          <p className="text-[11px] text-[#7C756A]">Target: {m.due_date}</p>
+                          <p className="text-[11px] text-[#667085]">Target: {m.due_date}</p>
                         )}
                       </div>
                     </div>
@@ -323,8 +323,8 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                       className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${m.status === 'completed'
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                           : m.status === 'in_progress'
-                            ? 'bg-[#EA580C] border-[#EA580C] text-[#FAF6EE]'
-                            : 'bg-[#FFFDF9] border-[#DDD4C4] text-[#5A554C]'
+                            ? 'bg-[#FF6B35] border-[#FF6B35] text-[#F5F6F8]'
+                            : 'bg-[#FFFFFF] border-[#D0D5DD] text-[#525A6B]'
                         }`}
                     >
                       {m.status.replace(/_/g, ' ')}
@@ -337,24 +337,24 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
 
           {/* Right: Scope, Billing & Contact */}
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm space-y-4">
+            <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm space-y-4">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                   Approved Delivery Scope
                 </span>
-                <p className="mt-1.5 text-xs text-[#11100E] leading-relaxed">
+                <p className="mt-1.5 text-xs text-[#151B2B] leading-relaxed">
                   {activeProject.approved_scope}
                 </p>
               </div>
 
-              <div className="border-t border-[#EFE7DA] pt-4">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+              <div className="border-t border-[#ECEFF3] pt-4">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
                   Primary Client Contact
                 </span>
-                <p className="mt-1 text-xs font-bold text-[#11100E]">
+                <p className="mt-1 text-xs font-bold text-[#151B2B]">
                   {activeProject.clients?.primary_contact_name || 'Decision Maker'}
                 </p>
-                <p className="text-xs text-[#5A554C]">
+                <p className="text-xs text-[#525A6B]">
                   {activeProject.clients?.primary_contact_channel || 'No channel recorded'}
                 </p>
                 {activeProject.clients?.primary_contact_channel &&
@@ -363,20 +363,20 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                       href={buildWhatsAppHref(activeProject.clients.primary_contact_channel)!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-3 block w-full rounded-xl bg-emerald-700 py-2.5 text-center text-xs font-bold text-[#FAF6EE] hover:bg-emerald-800"
+                      className="mt-3 block w-full rounded-xl bg-emerald-700 py-2.5 text-center text-xs font-bold text-[#F5F6F8] hover:bg-emerald-800"
                     >
                       Open Client WhatsApp &rarr;
                     </a>
                   )}
               </div>
 
-              <div className="border-t border-[#EFE7DA] pt-4 flex items-center justify-between">
-                <span className="text-xs text-[#5A554C]">
+              <div className="border-t border-[#ECEFF3] pt-4 flex items-center justify-between">
+                <span className="text-xs text-[#525A6B]">
                   Invoices linked: {activeProject.invoices?.length || 0}
                 </span>
                 <Link
                   href="/dashboard/revenue"
-                  className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#C2410C]"
+                  className="text-xs font-bold text-[#151B2B] underline underline-offset-4 hover:text-[#E05220]"
                 >
                   Manage Billing &rarr;
                 </Link>
@@ -388,22 +388,22 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
 
       {/* Real Onboard Client Modal */}
       {isCreatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11100E]/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#151B2B]/60 backdrop-blur-sm p-4">
           <form
             onSubmit={handleCreateClient}
-            className="w-full max-w-md rounded-2xl border border-[#DDD4C4] bg-[#FFFDF9] p-6 shadow-2xl space-y-4"
+            className="w-full max-w-md rounded-2xl border border-[#D0D5DD] bg-[#FFFFFF] p-6 shadow-2xl space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-[#EFE7DA] pb-3">
+            <div className="flex items-center justify-between border-b border-[#ECEFF3] pb-3">
               <div>
-                <h3 className="text-base font-black text-[#11100E]">Onboard Paying Client</h3>
-                <p className="text-xs text-[#5A554C]">
+                <h3 className="text-base font-black text-[#151B2B]">Onboard Paying Client</h3>
+                <p className="text-xs text-[#525A6B]">
                   Creates client, project milestones, and 50% advance invoice in Supabase.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCreatingModal(false)}
-                className="text-sm text-[#5A554C] hover:text-[#11100E]"
+                className="text-sm text-[#525A6B] hover:text-[#151B2B]"
               >
                 ✕
               </button>
@@ -411,13 +411,13 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
 
             {eligibleLeads.length > 0 && (
               <div>
-                <label className="block text-xs font-bold text-[#11100E]">
+                <label className="block text-xs font-bold text-[#151B2B]">
                   Link from CRM Lead (Optional)
                 </label>
                 <select
                   value={selectedLeadId}
                   onChange={(e) => handleSelectLead(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                  className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
                 >
                   <option value="">— Enter new organisation manually —</option>
                   {eligibleLeads.map((l) => (
@@ -430,7 +430,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
             )}
 
             <div>
-              <label className="block text-xs font-bold text-[#11100E]">
+              <label className="block text-xs font-bold text-[#151B2B]">
                 Client / Institution Name *
               </label>
               <input
@@ -439,23 +439,23 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
                 placeholder="e.g. St. Xavier Hostel London"
-                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-[#11100E]">Contact Name</label>
+                <label className="block text-xs font-bold text-[#151B2B]">Contact Name</label>
                 <input
                   type="text"
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
                   placeholder="Director / Warden"
-                  className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                  className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-[#11100E]">
+                <label className="block text-xs font-bold text-[#151B2B]">
                   WhatsApp / Email *
                 </label>
                 <input
@@ -464,13 +464,13 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                   value={newContactPhone}
                   onChange={(e) => setNewContactPhone(e.target.value)}
                   placeholder="+44 7700 900077"
-                  className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                  className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#11100E]">Approved Package</label>
+              <label className="block text-xs font-bold text-[#151B2B]">Approved Package</label>
               <select
                 value={newServiceName}
                 onChange={(e) => {
@@ -482,7 +482,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                   else if (val.includes('Assistant')) setNewContractValue('22000');
                   else setNewContractValue('65000');
                 }}
-                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
               >
                 <option value="Hostel Outpass Management System (HOMS)">
                   Hostel Outpass Management System (₹35,000)
@@ -503,7 +503,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#11100E]">
+              <label className="block text-xs font-bold text-[#151B2B]">
                 Contract Value (INR ₹)
               </label>
               <input
@@ -512,7 +512,7 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
                 min={1000}
                 value={newContractValue}
                 onChange={(e) => setNewContractValue(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-3 py-2 text-xs text-[#11100E]"
+                className="mt-1 w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-3 py-2 text-xs text-[#151B2B]"
               />
             </div>
 
@@ -520,14 +520,14 @@ export function ProjectsClient({ initialProjects, eligibleLeads }: ProjectsClien
               <button
                 type="button"
                 onClick={() => setIsCreatingModal(false)}
-                className="rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-4 py-2 text-xs font-bold text-[#5A554C]"
+                className="rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-4 py-2 text-xs font-bold text-[#525A6B]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-xl bg-[#EA580C] px-5 py-2 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-50"
+                className="rounded-xl bg-[#FF6B35] px-5 py-2 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220] disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Complete Onboarding'}
               </button>

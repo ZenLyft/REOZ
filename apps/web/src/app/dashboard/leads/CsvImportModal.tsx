@@ -55,29 +55,29 @@ export function CsvImportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#11100E]/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#DDD4C4] bg-[#FFFDF9] p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#EFE7DA] pb-4">
-          <h2 className="text-lg font-black text-[#11100E]">Bulk Import Leads via CSV</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#151B2B]/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#D0D5DD] bg-[#FFFFFF] p-6 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[#ECEFF3] pb-4">
+          <h2 className="text-lg font-black text-[#151B2B]">Bulk Import Leads via CSV</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-[#5A554C] hover:bg-[#F2EBE0] hover:text-[#11100E]"
+            className="rounded-lg p-1 text-[#525A6B] hover:bg-[#ECEFF3] hover:text-[#151B2B]"
           >
             ✕
           </button>
         </div>
 
         <div className="mt-4">
-          <p className="text-xs text-[#5A554C]">
+          <p className="text-xs text-[#525A6B]">
             Columns:{' '}
-            <code className="font-mono text-[#11100E]">
+            <code className="font-mono text-[#151B2B]">
               organisation_name, category, location, website_url, phone, email, notes
             </code>
           </p>
 
-          <label className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#CBBDA7] bg-[#FAF6EE] p-6 text-center hover:border-[#11100E]">
-            <span className="text-sm font-bold text-[#11100E]">Click to select CSV file</span>
-            <span className="mt-1 text-xs text-[#7C756A]">.csv text format</span>
+          <label className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#D0D5DD] bg-[#F5F6F8] p-6 text-center hover:border-[#151B2B]">
+            <span className="text-sm font-bold text-[#151B2B]">Click to select CSV file</span>
+            <span className="mt-1 text-xs text-[#667085]">.csv text format</span>
             <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
           </label>
         </div>
@@ -87,22 +87,22 @@ export function CsvImportModal({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
                 <div className="text-xl font-black text-emerald-800">{report.validRows.length}</div>
-                <div className="text-xs text-[#5A554C]">Valid Leads</div>
+                <div className="text-xs text-[#525A6B]">Valid Leads</div>
               </div>
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
                 <div className="text-xl font-black text-amber-800">{report.duplicates.length}</div>
-                <div className="text-xs text-[#5A554C]">Duplicates Filtered</div>
+                <div className="text-xs text-[#525A6B]">Duplicates Filtered</div>
               </div>
               <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
                 <div className="text-xl font-black text-red-800">{report.errors.length}</div>
-                <div className="text-xs text-[#5A554C]">Invalid Rows</div>
+                <div className="text-xs text-[#525A6B]">Invalid Rows</div>
               </div>
             </div>
 
             {report.duplicates.length > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs">
                 <h4 className="font-bold text-amber-900">Duplicates Skipped:</h4>
-                <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-[#5A554C]">
+                <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-[#525A6B]">
                   {report.duplicates.map((d, i) => (
                     <li key={i}>
                       Row {d.rowNumber}: <strong>{d.name}</strong> — {d.reason}
@@ -115,7 +115,7 @@ export function CsvImportModal({
             {report.errors.length > 0 && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs">
                 <h4 className="font-bold text-red-900">Validation Errors:</h4>
-                <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-[#5A554C]">
+                <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-[#525A6B]">
                   {report.errors.map((e, i) => (
                     <li key={i}>
                       Row {e.rowNumber}: {e.error}
@@ -133,11 +133,11 @@ export function CsvImportModal({
           </div>
         )}
 
-        <div className="mt-6 flex justify-end gap-3 border-t border-[#EFE7DA] pt-4">
+        <div className="mt-6 flex justify-end gap-3 border-t border-[#ECEFF3] pt-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#DDD4C4] px-4 py-2.5 text-sm font-bold text-[#5A554C] hover:bg-[#F2EBE0]"
+            className="rounded-xl border border-[#D0D5DD] px-4 py-2.5 text-sm font-bold text-[#525A6B] hover:bg-[#ECEFF3]"
           >
             Close
           </button>
@@ -146,7 +146,7 @@ export function CsvImportModal({
               type="button"
               onClick={handleConfirmImport}
               disabled={importing}
-              className="rounded-xl bg-[#11100E] px-5 py-2.5 text-sm font-bold text-[#FAF6EE] hover:bg-[#272420] disabled:opacity-50"
+              className="rounded-xl bg-[#151B2B] px-5 py-2.5 text-sm font-bold text-[#F5F6F8] hover:bg-[#2B313C] disabled:opacity-50"
             >
               {importing ? 'Importing...' : `Confirm Import (${report.validRows.length})`}
             </button>

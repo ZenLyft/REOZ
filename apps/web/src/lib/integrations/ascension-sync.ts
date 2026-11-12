@@ -1,5 +1,12 @@
+import crypto from 'crypto';
 import { computeDraftHash } from '@/lib/crm/pricing-and-hash';
 import { createAdminClient } from '@/lib/supabase/server';
+import {
+  OpenWAClient,
+  formatWhatsAppChatId,
+  getOpenWAConfig,
+} from '@/lib/integrations/openwa-client';
+import { notifyFounder } from '@/lib/integrations/web-push';
 
 export interface PipelineQualifiedLead {
   organisation_name?: string;
@@ -8,6 +15,7 @@ export interface PipelineQualifiedLead {
   source_ref?: string;
   website_url?: string | null;
   website_status?: string;
+  public_phone?: string | null;
   homs_score?: number;
   priority?: string;
   recommended_product?: string;
@@ -24,6 +32,7 @@ export interface CrmSyncSummary {
   synced: boolean;
   savedLeadsCount: number;
   queuedApprovalsCount: number;
+  firstColdAutoSentCount: number;
   skippedDuplicates: number;
   leads: Array<{
     id?: string;
@@ -36,6 +45,7 @@ export interface CrmSyncSummary {
     source_ref: string;
     draft_message?: string;
     is_new?: boolean;
+    first_cold_status?: 'auto_sent' | 'queued_for_founder';
   }>;
 }
 
@@ -73,6 +83,7 @@ export async function syncPipelineResultsToCrm(
       synced: false,
       savedLeadsCount: 0,
       queuedApprovalsCount: 0,
+      firstColdAutoSentCount: 0,
       skippedDuplicates: 0,
       leads: summaryLeads,
     };
@@ -80,6 +91,24 @@ export async function syncPipelineResultsToCrm(
 
   try {
     const supabase = createAdminClient();
+    const { data: settingsRow } = await supabase
+      .from('system_settings')
+      .select('autonomy_level, emergency_stop_active, evolution_api_auto_send, auto_send_first_cold')
+      .eq('id', 'zenlyft-global-settings')
+      .maybeSingle();
+
+    const s = (settingsRow || {}) as {
+      autonomy_level?: number;
+      emergency_stop_active?: boolean;
+      evolution_api_auto_send?: boolean;
+      auto_send_first_cold?: boolean;
+    };
+
+    const emergencyStopped = Boolean(s.emergency_stop_active);
+    const canAutoSendFirstCold =
+      !emergencyStopped &&
+      (s.auto_send_first_cold ?? ((s.autonomy_level ?? 3) >= 3 || Boolean(s.evolution_api_auto_send)));
+
     const { data: existingRows } = await supabase.from('leads').select('normalised_name');
     const existingSet = new Set(
       ((existingRows as Array<{ normalised_name?: string }> | null) || [])
@@ -87,8 +116,12 @@ export async function syncPipelineResultsToCrm(
         .filter(Boolean)
     );
 
+    const openWaConfig = getOpenWAConfig();
+    const openWaClient = new OpenWAClient();
+
     let savedLeadsCount = 0;
     let queuedApprovalsCount = 0;
+    let firstColdAutoSentCount = 0;
     let skippedDuplicates = 0;
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -118,7 +151,7 @@ export async function syncPipelineResultsToCrm(
           service_interest: 'hostel_management',
           score,
           pipeline_stage: score >= 60 ? 'qualified' : 'discovered',
-          next_action: 'Review Outreach in Approvals',
+          next_action: 'Autonomous 1st Cold Outreach Check',
           contact_restriction: 'none',
         })
         .select('id')
@@ -136,41 +169,193 @@ export async function syncPipelineResultsToCrm(
         lead_id: insertedLead.id,
         source_url: sourceRef,
         source_type: 'openstreetmap',
-        observed_fact: `Discovered worldwide (${city}) via OpenStreetMap / Ascension global sweep.`,
+        observed_fact: `Discovered worldwide (${city}) via OpenStreetMap / REOZ Autopilot.`,
         confidence: 'high',
       });
 
       const draftObj = draftMap.get(orgName);
-      if (draftObj?.draft_message) {
-        const recipient = 'Pending Verified Contact';
-        const { data: insertedDraft } = await supabase
-          .from('outreach_drafts')
-          .insert({
-            lead_id: insertedLead.id,
-            channel: draftObj.channel || 'whatsapp',
-            draft: draftObj.draft_message,
-            approval_status: 'pending',
-            approved_content_hash: computeDraftHash(draftObj.draft_message, recipient),
-            expires_at: expiresAt,
-          })
-          .select('id')
-          .single();
+      const cleanPhone = String(lead.public_phone || '').trim();
+      const phoneDigits = cleanPhone.replace(/\D/g, '');
+      const hasValidPhone = phoneDigits.length >= 8;
 
-        if (insertedDraft?.id) {
-          const { error: appErr } = await supabase.from('approvals').insert({
-            action_type: 'send_whatsapp_outreach',
-            target_table: 'outreach_drafts',
-            target_id: insertedDraft.id,
-            proposed_by: 'agent',
-            payload_hash: computeDraftHash(draftObj.draft_message, recipient),
-            recipient,
-            reason: `Global sweep (${city}) — ${orgName} scored ${score}/100`,
-            evidence: [{ source_url: sourceRef, city }],
-            cost_risk: 'zero_rupee_free_tier',
-            status: 'pending',
-            expires_at: expiresAt,
+      if (cleanPhone) {
+        await supabase.from('contact_channels').insert({
+          lead_id: insertedLead.id,
+          channel_type: 'phone',
+          public_value: cleanPhone,
+        });
+      }
+
+      if (draftObj?.draft_message) {
+        const draftMessage = draftObj.draft_message;
+        const recipient = cleanPhone || 'Pending Verified Contact';
+        const hash = computeDraftHash(draftMessage, recipient);
+
+        let sentAutonomously = false;
+        let dispatchMessageId: string | undefined;
+        let fallbackReason = !hasValidPhone
+          ? 'Public phone unavailable in OpenStreetMap — verify contact to send.'
+          : 'OpenWA gateway offline or unlinked.';
+
+        // Founder-granted Level 3 Autopilot: auto-send ONLY 1st cold outreach when valid phone exists
+        if (canAutoSendFirstCold && hasValidPhone && firstColdAutoSentCount < 5) {
+          const chatId = formatWhatsAppChatId(phoneDigits);
+          const idempotencyKey = crypto
+            .createHash('sha256')
+            .update(`first_cold::${insertedLead.id}::${phoneDigits}`)
+            .digest('hex');
+
+          try {
+            const sendRes = await openWaClient.sendTextMessage({
+              chatId,
+              text: draftMessage,
+              idempotencyKey,
+            });
+            if (sendRes.success) {
+              sentAutonomously = true;
+              dispatchMessageId = sendRes.messageId;
+            } else if (sendRes.error) {
+              fallbackReason = sendRes.error;
+            }
+          } catch {
+            // Keep queued for founder review
+          }
+        }
+
+        const now = new Date().toISOString();
+
+        if (sentAutonomously) {
+          const { data: sentDraft } = await supabase
+            .from('outreach_drafts')
+            .insert({
+              lead_id: insertedLead.id,
+              channel: draftObj.channel || 'whatsapp',
+              draft: draftMessage,
+              approval_status: 'sent',
+              approved_content_hash: hash,
+              approved_recipient: recipient,
+              approved_at: now,
+              sent_at: now,
+              expires_at: expiresAt,
+            })
+            .select('id')
+            .single();
+
+          if (sentDraft?.id) {
+            const { data: appRow } = await supabase
+              .from('approvals')
+              .insert({
+                action_type: 'autonomous_first_cold_whatsapp',
+                target_table: 'outreach_drafts',
+                target_id: sentDraft.id,
+                proposed_by: 'system',
+                payload_hash: hash,
+                recipient,
+                reason: `Auto-sent 1st cold WhatsApp (${city}) — ${orgName} (${score}/100)`,
+                evidence: [{ source_url: sourceRef, city }],
+                cost_risk: 'zero_rupee_free_tier',
+                status: 'sent',
+                decided_at: now,
+                expires_at: expiresAt,
+              })
+              .select('id')
+              .single();
+
+            await supabase.from('whatsapp_messages').insert({
+              session_id: openWaConfig.sessionId,
+              lead_id: insertedLead.id,
+              chat_id: formatWhatsAppChatId(phoneDigits),
+              sender_number: openWaConfig.businessPhone.replace(/\D/g, ''),
+              recipient_number: phoneDigits,
+              direction: 'outbound',
+              body: draftMessage,
+              status: 'submitted',
+              external_message_id: dispatchMessageId || null,
+              approval_id: appRow?.id || null,
+              approval_hash: hash,
+              sent_at: now,
+            });
+          }
+
+          await supabase
+            .from('leads')
+            .update({
+              pipeline_stage: 'contacted',
+              next_action: '1st Cold WhatsApp auto-sent. Follow-ups require Founder access.',
+              updated_at: now,
+            })
+            .eq('id', insertedLead.id);
+
+          // Schedule Day 3 follow-up strictly gated behind Founder permission
+          await supabase.from('whatsapp_followups').insert({
+            lead_id: insertedLead.id,
+            session_id: openWaConfig.sessionId,
+            stage: 'day_3',
+            status: 'awaiting_approval',
+            scheduled_for: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            notes: 'Next permission requires Founder approval in REOZ PWA.',
           });
-          if (!appErr) queuedApprovalsCount++;
+
+          firstColdAutoSentCount++;
+          summaryLeads[i] = { ...summaryLeads[i], first_cold_status: 'auto_sent' };
+
+          await notifyFounder({
+            category: 'first_cold_sent',
+            title: `1st Cold WhatsApp Auto-Sent: ${orgName}`,
+            body: `Sent autonomously to ${recipient} (${city}). Any reply will ask your permission next.`,
+            url: '/dashboard/whatsapp',
+            leadId: insertedLead.id,
+          });
+        } else {
+          const { data: insertedDraft } = await supabase
+            .from('outreach_drafts')
+            .insert({
+              lead_id: insertedLead.id,
+              channel: draftObj.channel || 'whatsapp',
+              draft: draftMessage,
+              approval_status: 'draft',
+              approved_content_hash: hash,
+              approved_recipient: recipient,
+              expires_at: expiresAt,
+            })
+            .select('id')
+            .single();
+
+          if (insertedDraft?.id) {
+            const { data: insertedApp, error: appErr } = await supabase
+              .from('approvals')
+              .insert({
+                action_type: 'send_whatsapp_outreach',
+                target_table: 'outreach_drafts',
+                target_id: insertedDraft.id,
+                proposed_by: 'agent',
+                payload_hash: hash,
+                recipient,
+                reason: `Prospect scored ${score}/100 (${city}) — ${fallbackReason}`,
+                evidence: [{ source_url: sourceRef, city }],
+                cost_risk: 'zero_rupee_free_tier',
+                status: 'pending',
+                expires_at: expiresAt,
+              })
+              .select('id')
+              .single();
+
+            if (!appErr) {
+              queuedApprovalsCount++;
+              summaryLeads[i] = { ...summaryLeads[i], first_cold_status: 'queued_for_founder' };
+
+              await notifyFounder({
+                category: 'permission_required',
+                title: `Action Required: ${orgName}`,
+                body: hasValidPhone
+                  ? `${city} • ${fallbackReason}`
+                  : `${city} • Scored ${score}/100 — verify contact to dispatch.`,
+                url: '/dashboard/approvals',
+                leadId: insertedLead.id,
+                approvalId: insertedApp?.id || null,
+              });
+            }
+          }
         }
       }
     }
@@ -186,6 +371,7 @@ export async function syncPipelineResultsToCrm(
         metadata_without_secrets: {
           region: regionLabel,
           saved_leads: savedLeadsCount,
+          first_cold_auto_sent: firstColdAutoSentCount,
           queued_approvals: queuedApprovalsCount,
           skipped_duplicates: skippedDuplicates,
         },
@@ -196,6 +382,7 @@ export async function syncPipelineResultsToCrm(
       synced: true,
       savedLeadsCount,
       queuedApprovalsCount,
+      firstColdAutoSentCount,
       skippedDuplicates,
       leads: summaryLeads,
     };
@@ -204,9 +391,9 @@ export async function syncPipelineResultsToCrm(
       synced: false,
       savedLeadsCount: 0,
       queuedApprovalsCount: 0,
+      firstColdAutoSentCount: 0,
       skippedDuplicates: 0,
       leads: summaryLeads,
     };
   }
 }
-

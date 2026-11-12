@@ -2,8 +2,8 @@ name: REOZ 24/7 Autopilot Engine
 
 on:
   schedule:
-    # Runs every 4 hours automatically in GitHub Actions cloud (100% free)
-    - cron: '0 */4 * * *'
+    # Runs every 2 hours automatically in GitHub Actions cloud (100% free)
+    - cron: '0 */2 * * *'
   workflow_dispatch: # Allows manual trigger from GitHub UI anytime
 
 jobs:
@@ -12,6 +12,24 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Trigger REOZ 24/7 Cloud Autopilot & 1st Cold Outreach
+        env:
+          REOZ_APP_URL: ${{ secrets.REOZ_APP_URL }}
+          AUTOPILOT_SECRET: ${{ secrets.AUTOPILOT_SECRET }}
+          ASCENSION_API_SECRET: ${{ secrets.ASCENSION_API_SECRET }}
+        run: |
+          TARGET_URL="${REOZ_APP_URL%/}"
+          TOKEN="${AUTOPILOT_SECRET:-$ASCENSION_API_SECRET}"
+          if [ -n "$TARGET_URL" ] && [ -n "$TOKEN" ]; then
+            echo "Running full REOZ 24/7 autonomous sweep + 1st cold outreach..."
+            curl -fsS -X POST "${TARGET_URL}/api/autopilot/run" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d '{"limit": 6, "source": "github_cron_24x7"}'
+          else
+            echo "REOZ_APP_URL or AUTOPILOT_SECRET not set — skipping HTTP autopilot trigger."
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -22,7 +40,7 @@ jobs:
         run: |
           pip install httpx python-dotenv pydantic
 
-      - name: Run 24/7 Autopilot Discovery & Lead Qualification
+      - name: Run 24/7 OpenStreetMap Discovery Fallback
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -30,4 +48,3 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python -m workers.discovery.overpass_worker
-

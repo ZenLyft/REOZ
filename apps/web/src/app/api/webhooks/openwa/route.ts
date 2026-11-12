@@ -7,6 +7,7 @@ import {
   classifyIncomingMessage,
 } from '@/lib/integrations/openwa-client';
 import { computeDraftHash } from '@/lib/crm/pricing-and-hash';
+import { notifyFounder } from '@/lib/integrations/web-push';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,11 +81,30 @@ export async function POST(req: NextRequest) {
       }
 
       // Check CRM Lead by phone number
-      const { data: lead } = await supabase
+      let { data: lead } = await supabase
         .from('leads')
         .select('id, organisation_name, contact_restriction, pipeline_stage')
         .or(`location.ilike.%${rawNumber}%,website_url.ilike.%${rawNumber}%`)
         .maybeSingle();
+
+      if (!lead && rawNumber.length >= 7) {
+        const tail = rawNumber.slice(-8);
+        const { data: channelMatch } = await supabase
+          .from('contact_channels')
+          .select('lead_id')
+          .ilike('public_value', `%${tail}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (channelMatch?.lead_id) {
+          const { data: leadRow } = await supabase
+            .from('leads')
+            .select('id, organisation_name, contact_restriction, pipeline_stage')
+            .eq('id', channelMatch.lead_id)
+            .maybeSingle();
+          lead = leadRow;
+        }
+      }
 
       // Classify Incoming Message
       const aiAnalysis = classifyIncomingMessage(body);
@@ -129,6 +149,14 @@ export async function POST(req: NextRequest) {
           entity: 'lead',
           entity_id: lead?.id || 'unknown',
           metadata: { number: rawNumber, message: body },
+        });
+
+        await notifyFounder({
+          category: 'system',
+          title: `Opt-Out Logged: ${lead?.organisation_name || rawNumber}`,
+          body: 'Prospect replied STOP/opt-out. Removed automatically and future follow-ups cancelled.',
+          url: '/dashboard/leads',
+          leadId: lead?.id || null,
         });
 
         return NextResponse.json({ success: true, action: 'opt_out_recorded' });
@@ -183,24 +211,40 @@ export async function POST(req: NextRequest) {
         .select('id')
         .single();
 
+      let approvalId: string | null = null;
       if (newDraft) {
-        await supabase.from('approvals').insert({
-          action_type: 'send_whatsapp_message',
-          target_table: 'outreach_drafts',
-          target_id: newDraft.id,
-          proposed_by: 'agent',
-          payload_hash: draftHash,
-          recipient: rawNumber,
-          reason: `Reply to incoming ${aiAnalysis.classification}: "${body.slice(0, 60)}"`,
-          evidence: [
-            { type: 'customer_inbound', text: body },
-            { type: 'classification', intent: aiAnalysis.classification },
-          ],
-          cost_risk: '₹0 (Free-tier WhatsApp Session)',
-          status: 'pending',
-          expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
-        });
+        const { data: appRow } = await supabase
+          .from('approvals')
+          .insert({
+            action_type: 'send_whatsapp_message',
+            target_table: 'outreach_drafts',
+            target_id: newDraft.id,
+            proposed_by: 'agent',
+            payload_hash: draftHash,
+            recipient: rawNumber,
+            reason: `Reply to incoming ${aiAnalysis.classification}: "${body.slice(0, 60)}"`,
+            evidence: [
+              { type: 'customer_inbound', text: body },
+              { type: 'classification', intent: aiAnalysis.classification },
+            ],
+            cost_risk: '₹0 (Free-tier WhatsApp Session)',
+            status: 'pending',
+            expires_at: new Date(Date.now() + 86400 * 1000).toISOString(),
+          })
+          .select('id')
+          .single();
+        approvalId = appRow?.id || null;
       }
+
+      // Notify Founder iPhone PWA immediately: Next Permission Required!
+      await notifyFounder({
+        category: 'reply_received',
+        title: `Reply (${aiAnalysis.classification}): ${lead?.organisation_name || rawNumber}`,
+        body: `"${body.slice(0, 90)}" — Tap to grant next permission & send reply.`,
+        url: '/dashboard/approvals',
+        leadId: lead?.id || null,
+        approvalId,
+      });
 
       return NextResponse.json({
         success: true,
@@ -249,6 +293,15 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', sid);
+
+      if (status === 'disconnected' || status === 'action_required' || status === 'failed') {
+        await notifyFounder({
+          category: 'openwa_alert',
+          title: `WhatsApp Gateway Alert: ${status.toUpperCase()}`,
+          body: 'Open REOZ WhatsApp tab to re-link QR so autonomous 1st cold outreach continues.',
+          url: '/dashboard/whatsapp',
+        });
+      }
 
       return NextResponse.json({ success: true, updated_session: sid, status });
     }

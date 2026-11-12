@@ -30,6 +30,14 @@ export interface AscensionHealthSnapshot {
   memoryFacts?: Array<Record<string, unknown>>;
 }
 
+async function parseJsonSafe(res: Response): Promise<Record<string, unknown> | null> {
+  try {
+    return JSON.parse(await res.text()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 export function getAscensionConfig() {
   return {
     apiUrl: (process.env.ASCENSION_API_URL || '').trim().replace(/\/+$/, ''),
@@ -73,13 +81,26 @@ export async function fetchAscensionSnapshot(): Promise<AscensionHealthSnapshot>
       };
     }
 
+    const healthJson = await parseJsonSafe(healthRes);
+    if (!healthJson) {
+      return {
+        connectionStatus: 'OFFLINE',
+        apiUrlConfigured: true,
+        error: 'Ascension backend is waking up (non-JSON response).',
+      };
+    }
+
+    const regJson = regRes.ok ? await parseJsonSafe(regRes) : null;
+    const metricsJson = metricsRes.ok ? await parseJsonSafe(metricsRes) : null;
+    const memJson = memRes.ok ? await parseJsonSafe(memRes) : null;
+
     return {
       connectionStatus: 'CONNECTED',
       apiUrlConfigured: true,
-      health: await healthRes.json(),
-      registry: regRes.ok ? await regRes.json() : undefined,
-      metrics: metricsRes.ok ? await metricsRes.json() : undefined,
-      memoryFacts: memRes.ok ? ((await memRes.json()).facts || []) : [],
+      health: healthJson,
+      registry: regJson || undefined,
+      metrics: metricsJson || undefined,
+      memoryFacts: Array.isArray(memJson?.facts) ? (memJson.facts as Array<Record<string, unknown>>) : [],
     };
   } catch (err) {
     return {

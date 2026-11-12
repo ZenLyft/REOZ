@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#FAF6EE',
+  themeColor: '#F5F6F8',
 };
 
 export default function RootLayout({
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.className} min-h-screen bg-[#FAF6EE] text-[#11100E] antialiased`}
+        className={`${inter.className} min-h-screen bg-[#F5F6F8] text-[#151B2B] antialiased`}
       >
         {children}
       </body>

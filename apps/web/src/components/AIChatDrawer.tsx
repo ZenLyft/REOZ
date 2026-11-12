@@ -49,28 +49,28 @@ export function AIChatDrawer() {
       {/* Floating Rich Black Pill with Orange Accent */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-20 lg:bottom-6 right-5 z-50 flex items-center gap-2.5 rounded-full bg-[#11100E] px-5 py-3 text-xs sm:text-sm font-bold text-[#FAF6EE] shadow-xl hover:bg-[#1E1C18] border border-[#EA580C]/70 transition-all active:scale-95"
+        className="fixed bottom-20 lg:bottom-6 right-5 z-50 flex items-center gap-2.5 rounded-full bg-[#151B2B] px-5 py-3 text-xs sm:text-sm font-bold text-[#F5F6F8] shadow-xl hover:bg-[#2B313C] border border-[#FF6B35]/70 transition-all active:scale-95"
       >
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#EA580C] animate-pulse" />
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#FF6B35] animate-pulse" />
         <span>AI Command Centre</span>
       </button>
 
       {/* Slide-out Cream & Rich Black Drawer */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] border-l border-[#DDD4C4] bg-[#FFFDF9] p-6 shadow-2xl flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-[#E5DDD0] pb-4">
+        <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] border-l border-[#D0D5DD] bg-[#FFFFFF] p-6 shadow-2xl flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
-                <h3 className="font-bold text-[#11100E]">REOZ AI Orchestrator</h3>
+                <h3 className="font-bold text-[#151B2B]">REOZ AI Orchestrator</h3>
               </div>
-              <p className="text-xs text-[#5A554C] mt-0.5">
+              <p className="text-xs text-[#525A6B] mt-0.5">
                 Live CRM Context • Global Discovery & Strategy
               </p>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="rounded-lg px-2 py-1 text-sm text-[#5A554C] hover:bg-[#F2EBE0] hover:text-[#11100E]"
+              className="rounded-lg px-2 py-1 text-sm text-[#525A6B] hover:bg-[#ECEFF3] hover:text-[#151B2B]"
             >
               ✕
             </button>
@@ -85,8 +85,8 @@ export function AIChatDrawer() {
                 <div
                   className={`max-w-[85%] rounded-2xl p-3.5 whitespace-pre-wrap leading-relaxed ${
                     m.role === 'user'
-                      ? 'bg-[#11100E] text-[#FAF6EE]'
-                      : 'bg-[#F4EEE3] border border-[#E5DDD0] text-[#11100E]'
+                      ? 'bg-[#151B2B] text-[#F5F6F8]'
+                      : 'bg-[#ECEFF3] border border-[#E4E7EC] text-[#151B2B]'
                   }`}
                 >
                   {m.text}
@@ -94,26 +94,26 @@ export function AIChatDrawer() {
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-[#5A554C]">
-                <span className="h-2 w-2 rounded-full bg-[#11100E] animate-ping" /> Running live
+              <div className="flex items-center gap-2 text-[#525A6B]">
+                <span className="h-2 w-2 rounded-full bg-[#151B2B] animate-ping" /> Running live
                 query...
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSend} className="border-t border-[#E5DDD0] pt-3">
+          <form onSubmit={handleSend} className="border-t border-[#E4E7EC] pt-3">
             <div className="relative">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask or command (e.g. Find colleges in London)..."
-                className="w-full rounded-xl border border-[#DDD4C4] bg-[#FAF6EE] px-4 py-3 text-xs text-[#11100E] placeholder-[#7C756A] focus:border-[#11100E] focus:outline-none pr-16"
+                className="w-full rounded-xl border border-[#D0D5DD] bg-[#F5F6F8] px-4 py-3 text-xs text-[#151B2B] placeholder-[#667085] focus:border-[#151B2B] focus:outline-none pr-16"
               />
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
-                className="absolute right-2 top-1.5 rounded-lg bg-[#EA580C] px-3.5 py-1.5 text-xs font-bold text-[#FAF6EE] hover:bg-[#C2410C] disabled:opacity-40"
+                className="absolute right-2 top-1.5 rounded-lg bg-[#FF6B35] px-3.5 py-1.5 text-xs font-bold text-[#F5F6F8] hover:bg-[#E05220] disabled:opacity-40"
               >
                 Run
               </button>

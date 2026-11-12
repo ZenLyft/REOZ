@@ -26,12 +26,12 @@ export default async function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#E5DDD0] pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#E4E7EC] pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
             Prospects & Leads
           </h1>
-          <p className="mt-1 text-sm text-[#5A554C]">
+          <p className="mt-1 text-sm text-[#525A6B]">
             Track, qualify, and convert opportunities across colleges, hostels, and local businesses worldwide.
           </p>
         </div>

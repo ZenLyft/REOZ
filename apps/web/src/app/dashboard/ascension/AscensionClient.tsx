@@ -1,320 +1,331 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-interface EngineStatus {
-  configured?: boolean;
-  cloud_connected: boolean;
-  total_agent_roles?: number;
-  active_agent_slots?: number;
-  emergency_stop?: boolean;
-  monthly_budget_cents?: number;
-  allow_paid_fallback?: boolean;
-  orchestrator?: string;
-  memory_protocol?: string;
-  workflows_active?: string[];
-  error?: string;
+interface AutopilotMetrics {
+  total_leads: number;
+  first_cold_sent_count: number;
+  pending_founder_permissions_count: number;
 }
 
-interface DiscoveredProspect {
-  organisation_name?: string;
-  location?: string;
-  category?: string;
-  homs_score?: number;
-  recommended_package?: string;
-  whatsapp_draft?: string;
-  website_url?: string | null;
+interface AutopilotSettingsState {
+  autonomy_level: number;
+  emergency_stop_active: boolean;
+  auto_pilot_enabled: boolean;
+  auto_send_first_cold: boolean;
+  notify_every_event: boolean;
+  next_permission_founder_only: boolean;
 }
 
-interface SyncSummary {
-  saved_leads: number;
-  skipped_duplicates: number;
-  created_approvals: number;
-}
-
-interface CampaignDef {
+interface ExecutionItem {
   id: string;
-  region: string;
-  label: string;
-  cities: string;
-  objective: string;
+  agent_name: string;
+  command: string;
+  status: string;
+  result_summary: string;
+  created_at: string;
+}
+
+interface NotificationItem {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  url: string;
+  created_at: string;
 }
 
 interface DepartmentSummary {
   key: string;
   name: string;
   role_count: number;
-  starter_active_count: number;
-  manager_id: string;
 }
 
-interface PaperclipStatus {
-  configured?: boolean;
-  ready?: boolean;
-  service?: string;
-  adapter_type?: string;
-  zero_cost_policy?: { allowPaidFallback?: boolean; monthlyBudgetCents?: number };
-  routines_count?: number;
-  last_heartbeat_at?: string | null;
-  error?: string;
+async function parseResponseJson<T = Record<string, unknown>>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
 }
-
-const REGIONS: CampaignDef[] = [
-  {
-    id: 'global',
-    region: 'global',
-    label: 'All Continents',
-    cities: 'London, New York, Singapore, Dubai, Toronto, Sydney',
-    objective: 'Discover & qualify colleges and hostels worldwide for ZenLyft HOMS (₹35,000)',
-  },
-  {
-    id: 'north_america',
-    region: 'north_america',
-    label: 'North America',
-    cities: 'New York, Toronto, Austin, Chicago',
-    objective: 'Discover & qualify colleges and student housing across North America',
-  },
-  {
-    id: 'europe',
-    region: 'europe',
-    label: 'Europe & UK',
-    cities: 'London, Berlin, Amsterdam, Dublin',
-    objective: 'Discover & qualify colleges and hostels across UK & Europe',
-  },
-  {
-    id: 'middle_east',
-    region: 'middle_east',
-    label: 'Middle East & Africa',
-    cities: 'Dubai, Abu Dhabi, Riyadh, Cape Town',
-    objective: 'Discover & qualify campuses and institutes across Middle East & Africa',
-  },
-  {
-    id: 'apac',
-    region: 'apac',
-    label: 'Asia-Pacific & India',
-    cities: 'Singapore, Bengaluru, Tokyo, Sydney',
-    objective: 'Discover & qualify colleges and hostels across APAC & India',
-  },
-  {
-    id: 'latam',
-    region: 'latam',
-    label: 'Latin America',
-    cities: 'Sao Paulo, Mexico City, Bogota, Santiago',
-    objective: 'Discover & qualify educational campuses across Latin America',
-  },
-];
 
 export default function AscensionClient() {
-  const [status, setStatus] = useState<EngineStatus | null>(null);
-  const [paperclip, setPaperclip] = useState<PaperclipStatus | null>(null);
+  const [settings, setSettings] = useState<AutopilotSettingsState | null>(null);
+  const [metrics, setMetrics] = useState<AutopilotMetrics | null>(null);
+  const [waSession, setWaSession] = useState<{ status: string; phone?: string } | null>(null);
+  const [recentRuns, setRecentRuns] = useState<ExecutionItem[]>([]);
+  const [alerts, setAlerts] = useState<NotificationItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<CampaignDef>(REGIONS[0]);
-  const [customCity, setCustomCity] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [busyPause, setBusyPause] = useState(false);
+  const [banner, setBanner] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [prospects, setProspects] = useState<DiscoveredProspect[]>([]);
-  const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
-  const [showTechDetails, setShowTechDetails] = useState(false);
+  const [showManualOverride, setShowManualOverride] = useState(false);
+  const [manualCity, setManualCity] = useState('');
+  const autoTriggeredRef = useRef(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadAutopilot = useCallback(async () => {
     try {
-      const [statusRes, paperclipRes] = await Promise.all([
+      const [apRes, notifRes, statusRes] = await Promise.all([
+        fetch('/api/autopilot/run', { cache: 'no-store' }),
+        fetch('/api/notifications', { cache: 'no-store' }),
         fetch('/api/ascension/status', { cache: 'no-store' }),
-        fetch('/api/ascension/paperclip', { cache: 'no-store' }),
       ]);
-      const data = await statusRes.json();
-      setStatus(data);
-      if (Array.isArray(data.departments)) setDepartments(data.departments);
-      if (paperclipRes.ok) setPaperclip(await paperclipRes.json());
+
+      const apData = await parseResponseJson<{
+        success?: boolean;
+        settings?: AutopilotSettingsState;
+        metrics?: AutopilotMetrics;
+        whatsapp_session?: { status: string; phone?: string };
+        recent_runs?: ExecutionItem[];
+        error?: string;
+      }>(apRes);
+
+      if (apData?.settings) setSettings(apData.settings);
+      if (apData?.metrics) setMetrics(apData.metrics);
+      if (apData?.whatsapp_session) setWaSession(apData.whatsapp_session);
+      if (Array.isArray(apData?.recent_runs)) setRecentRuns(apData.recent_runs);
+
+      const notifData = await parseResponseJson<{ notifications?: NotificationItem[] }>(notifRes);
+      if (Array.isArray(notifData?.notifications)) {
+        setAlerts(notifData.notifications.slice(0, 6));
+      }
+
+      const statusData = await parseResponseJson<{ departments?: DepartmentSummary[] }>(statusRes);
+      if (Array.isArray(statusData?.departments)) {
+        setDepartments(statusData.departments);
+      }
+
+      return apData;
     } catch {
-      setStatus({ cloud_connected: false, error: 'Unable to reach discovery engine' });
+      return null;
     }
   }, []);
 
+  const triggerCycle = useCallback(
+    async (cityOverride?: string) => {
+      setSyncing(true);
+      setErrorMsg(null);
+      try {
+        const res = await fetch('/api/autopilot/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city: cityOverride?.trim() || undefined,
+            limit: 6,
+            source: cityOverride ? 'founder_city_override' : 'auto_background_sync',
+          }),
+        });
+        const data = await parseResponseJson<{
+          status?: string;
+          city?: string;
+          discovered_count?: number;
+          saved_leads?: number;
+          first_cold_auto_sent?: number;
+          queued_for_founder?: number;
+          reason?: string;
+          error?: string;
+        }>(res);
+
+        if (!data) {
+          setErrorMsg(`Engine returned unexpected status (${res.status}).`);
+        } else if (!res.ok) {
+          setErrorMsg(data.error || 'Autopilot sweep could not complete.');
+        } else if (data.status === 'completed') {
+          setBanner(
+            `Autopilot synced ${data.city}: ${data.discovered_count ?? 0} found, ${data.saved_leads ?? 0} saved, ${data.first_cold_auto_sent ?? 0} 1st cold WhatsApp sent, ${data.queued_for_founder ?? 0} awaiting action.`
+          );
+        } else if (data.reason) {
+          setBanner(data.reason);
+        }
+        await loadAutopilot();
+      } catch (e: unknown) {
+        setErrorMsg(e instanceof Error ? e.message : 'Network error');
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [loadAutopilot]
+  );
+
   useEffect(() => {
-    loadStatus();
-  }, [loadStatus]);
+    let active = true;
+    (async () => {
+      const data = await loadAutopilot();
+      if (!active || autoTriggeredRef.current) return;
+      autoTriggeredRef.current = true;
 
-  async function handleFindClients() {
-    setBusy(true);
+      const s = data?.settings;
+      if (s && s.auto_pilot_enabled && !s.emergency_stop_active) {
+        const latestAt = data?.recent_runs?.[0]?.created_at
+          ? new Date(data.recent_runs[0].created_at).getTime()
+          : 0;
+        const staleMs = 90 * 60 * 1000;
+        if (!latestAt || Date.now() - latestAt > staleMs) {
+          await triggerCycle();
+        }
+      }
+    })();
+
+    const poll = setInterval(() => {
+      loadAutopilot();
+    }, 30000);
+    return () => {
+      active = false;
+      clearInterval(poll);
+    };
+  }, [loadAutopilot, triggerCycle]);
+
+  async function toggleEmergencyStop() {
+    setBusyPause(true);
     setErrorMsg(null);
-    setMessage(null);
-    setSyncSummary(null);
-
-    const targetLabel = customCity.trim() || selectedRegion.label;
-    const objective = customCity.trim()
-      ? `Discover & qualify colleges and hostels in ${customCity.trim()} for ZenLyft HOMS (₹35,000)`
-      : selectedRegion.objective;
-
+    const nextPaused = !settings?.emergency_stop_active;
     try {
-      const res = await fetch('/api/ascension/workflows', {
-        method: 'POST',
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'run',
-          region: customCity.trim() || selectedRegion.region,
-          objective,
-          product: 'HOMS',
-        }),
+        body: JSON.stringify({ emergency_stop_active: nextPaused }),
       });
-      const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error || data.detail || 'Could not complete search. Please try again.');
+        const err = await parseResponseJson<{ error?: string }>(res);
+        setErrorMsg(err?.error || 'Failed to update Master Stop');
       } else {
-        const list: DiscoveredProspect[] = Array.isArray(data.qualified_leads)
-          ? data.qualified_leads
-          : [];
-        setProspects(list);
-        const sync: SyncSummary | null = data.crm_sync || null;
-        setSyncSummary(sync);
-        setMessage(
-          `Found ${list.length} real prospect${list.length === 1 ? '' : 's'} for ${targetLabel}` +
-            (sync
-              ? ` — ${sync.saved_leads} added to Leads & ${sync.created_approvals} ready in Approvals.`
-              : '.')
+        setBanner(
+          nextPaused
+            ? 'Automation paused cleanly across all channels.'
+            : '24/7 Autopilot resumed cleanly.'
         );
       }
-      await loadStatus();
-    } catch (e: unknown) {
-      setErrorMsg(e instanceof Error ? e.message : 'Network error');
+      await loadAutopilot();
     } finally {
-      setBusy(false);
+      setBusyPause(false);
     }
   }
 
-  async function toggleKillSwitch() {
-    setBusy(true);
-    setErrorMsg(null);
-    try {
-      const res = await fetch('/api/ascension/workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'kill_switch',
-          engaged: !status?.emergency_stop,
-          reason: 'Founder toggle from Global Client Finder',
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        setErrorMsg(err.error || 'Failed to toggle pause switch');
-      }
-      await loadStatus();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const isPaused = Boolean(status?.emergency_stop);
-  const isReady = Boolean(status?.cloud_connected);
+  const isPaused = Boolean(settings?.emergency_stop_active);
+  const autoColdOn = Boolean(settings?.auto_send_first_cold ?? true) && !isPaused;
+  const waReady = waSession?.status === 'ready' || waSession?.status === 'authenticated';
 
   return (
     <div className="space-y-6">
-      {/* Main Finder Card */}
-      <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 sm:p-8 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#E5DDD0] pb-5">
+      {/* Main Hands-Free Autopilot Control Header */}
+      <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#E4E7EC] pb-5">
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border ${
-                  isReady
+                  !isPaused
                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-red-50 text-red-700 border-red-200'
                 }`}
               >
                 <span
                   className={`h-2 w-2 rounded-full ${
-                    isReady ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
+                    !isPaused ? 'bg-emerald-600 animate-pulse' : 'bg-red-600'
                   }`}
                 />
-                {isReady ? 'Auto-Finder Ready' : 'Waking Engine...'}
+                {!isPaused ? '24/7 Autopilot Running (No Clicks Needed)' : 'Automation Paused'}
               </span>
-              <span className="rounded-full bg-[#FFF0E6] border border-[#FDBA74] px-3 py-1 text-xs font-bold text-[#C2410C]">
-                ₹0 Cloud Spend Lock
+
+              <span className="rounded-full bg-[#FFF1EC] border border-[#FFCBB8] px-3 py-1 text-xs font-bold text-[#E05220]">
+                1st Cold WhatsApp: {autoColdOn ? 'AUTO-SEND ON' : 'PAUSED'}
+              </span>
+
+              <span className="rounded-full bg-[#ECEFF3] border border-[#D0D5DD] px-3 py-1 text-xs font-bold text-[#151B2B]">
+                Next Permission: Founder Access Only
               </span>
             </div>
-            <h1 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
-              Global Client Finder
+
+            <h1 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
+              Autonomous Client & Outreach Engine
             </h1>
-            <p className="mt-1 text-sm text-[#5A554C]">
-              Pick a region or enter any city worldwide. AI finds real institutions, qualifies fit, and queues WhatsApp drafts for your 1-tap approval.
+            <p className="mt-1 text-sm text-[#525A6B]">
+              Runs every 2 hours worldwide automatically. Discovers prospects, dispatches 1st cold WhatsApp pitches autonomously, pushes every event to your iPhone PWA, and holds all follow-ups & replies for your Founder permission.
             </p>
           </div>
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={toggleKillSwitch}
-            className={`self-start sm:self-auto px-4 py-2 rounded-xl text-xs font-bold border transition ${
-              isPaused
-                ? 'bg-emerald-700 hover:bg-emerald-600 text-[#FAF6EE] border-emerald-800'
-                : 'bg-[#FFFDF9] hover:bg-red-50 text-red-700 border-red-200'
-            }`}
-          >
-            {isPaused ? 'Resume Auto-Finder' : 'Pause All Automation'}
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              disabled={busyPause}
+              onClick={toggleEmergencyStop}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${
+                isPaused
+                  ? 'bg-emerald-700 hover:bg-emerald-800 text-[#F5F6F8] border-emerald-800'
+                  : 'bg-[#FFFFFF] hover:bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              {isPaused ? 'Resume Autopilot' : 'Pause Autopilot'}
+            </button>
+          </div>
         </div>
 
-        {/* Region Selector Pills */}
-        <div className="space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-[#7C756A]">
-            1. Choose Target Region
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {REGIONS.map((r) => {
-              const active = !customCity.trim() && selectedRegion.id === r.id;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    setCustomCity('');
-                    setSelectedRegion(r);
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
-                    active
-                      ? 'bg-[#11100E] border-[#EA580C] text-[#FAF6EE] shadow-sm'
-                      : 'bg-[#FAF6EE] border-[#DDD4C4] text-[#5A554C] hover:bg-[#EFE7DA] hover:text-[#11100E]'
-                  }`}
-                >
-                  {r.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-[#7C756A]">
-            Target hubs: <span className="font-semibold text-[#11100E]">{selectedRegion.cities}</span>
-          </p>
+        {/* 4 Key Autonomous Telemetry KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            href="/dashboard/leads"
+            className="rounded-2xl border border-[#E4E7EC] bg-[#F5F6F8] p-4 hover:border-[#FF6B35] transition block"
+          >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
+              Global Prospects Found
+            </div>
+            <div className="mt-1.5 text-2xl font-black text-[#151B2B] tabular-nums">
+              {metrics?.total_leads ?? 0}
+            </div>
+            <div className="text-xs text-[#525A6B] mt-0.5">Synced continuously</div>
+          </Link>
+
+          <Link
+            href="/dashboard/whatsapp"
+            className="rounded-2xl border border-[#E4E7EC] bg-[#F5F6F8] p-4 hover:border-[#FF6B35] transition block"
+          >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#E05220]">
+              1st Cold Auto-Sent
+            </div>
+            <div className="mt-1.5 text-2xl font-black text-[#FF6B35] tabular-nums">
+              {metrics?.first_cold_sent_count ?? 0}
+            </div>
+            <div className="text-xs text-[#525A6B] mt-0.5">Dispatched autonomously</div>
+          </Link>
+
+          <Link
+            href="/dashboard/approvals"
+            className="rounded-2xl border-2 border-[#FF6B35] bg-[#151B2B] p-4 text-[#F5F6F8] hover:bg-[#2B313C] transition block"
+          >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#FF8A5B]">
+              Next Permission Queue
+            </div>
+            <div className="mt-1.5 text-2xl font-black tabular-nums">
+              {metrics?.pending_founder_permissions_count ?? 0}
+            </div>
+            <div className="text-xs text-[#CBD5E1] mt-0.5">Awaiting Founder 1-tap access &rarr;</div>
+          </Link>
+
+          <Link
+            href="/dashboard/whatsapp"
+            className="rounded-2xl border border-[#E4E7EC] bg-[#F5F6F8] p-4 hover:border-[#FF6B35] transition block"
+          >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
+              WhatsApp Gateway
+            </div>
+            <div className="mt-1.5 text-sm font-black uppercase text-[#151B2B]">
+              {waReady ? 'Connected & Active' : waSession?.status || 'Disconnected'}
+            </div>
+            <div className="text-xs text-[#525A6B] mt-1">
+              {waReady ? 'Sending +91 80159 29139 live' : 'Tap to link OpenWA QR →'}
+            </div>
+          </Link>
         </div>
 
-        {/* Custom City + 1-Tap Launch CTA */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-1">
-          <input
-            type="text"
-            value={customCity}
-            onChange={(e) => setCustomCity(e.target.value)}
-            placeholder="Or type any city (e.g. Tokyo, Melbourne, Mumbai, Paris)..."
-            className="flex-1 px-4 py-3 rounded-xl bg-[#FAF6EE] border border-[#DDD4C4] text-sm text-[#11100E] placeholder-[#7C756A] focus:outline-none focus:border-[#EA580C]"
-          />
-          <button
-            type="button"
-            disabled={busy || isPaused}
-            onClick={handleFindClients}
-            className="px-7 py-3.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] disabled:opacity-50 text-sm font-bold text-[#FAF6EE] shadow-md transition whitespace-nowrap flex items-center justify-center gap-2"
-          >
-            {busy ? (
-              <>
-                <span className="h-4 w-4 rounded-full border-2 border-[#FAF6EE]/30 border-t-[#FAF6EE] animate-spin" />
-                Finding Clients...
-              </>
-            ) : (
-              'Find Clients Now'
-            )}
-          </button>
-        </div>
+        {syncing && (
+          <div className="rounded-xl border border-[#FFCBB8] bg-[#FFF1EC] px-4 py-3 text-xs font-semibold text-[#E05220] flex items-center gap-2.5">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#FF6B35]/30 border-t-[#FF6B35] animate-spin" />
+            Running automatic global discovery, 1st cold outreach check & iPhone alert sync...
+          </div>
+        )}
 
         {errorMsg && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800 font-medium">
@@ -322,123 +333,123 @@ export default function AscensionClient() {
           </div>
         )}
 
-        {message && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <span className="font-semibold">{message}</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href="/dashboard/leads"
-                className="px-3 py-1.5 rounded-lg bg-[#FFFDF9] hover:bg-[#EFE7DA] border border-[#DDD4C4] text-[#11100E] font-bold"
-              >
-                Open Leads &rarr;
-              </Link>
-              <Link
-                href="/dashboard/approvals"
-                className="px-3 py-1.5 rounded-lg bg-[#11100E] hover:bg-[#272420] text-[#FAF6EE] font-bold"
-              >
-                Review & Approve &rarr;
-              </Link>
-            </div>
+        {banner && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 font-semibold flex items-center justify-between gap-3">
+            <span>{banner}</span>
+            <Link
+              href="/dashboard/approvals"
+              className="shrink-0 rounded-lg bg-[#151B2B] px-3 py-1.5 text-[11px] font-bold text-[#F5F6F8] hover:bg-[#2B313C]"
+            >
+              Open Approvals &rarr;
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Results Stream */}
-      {prospects.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#11100E]">
-              Found Prospects ({prospects.length})
-            </h2>
-            {syncSummary && (
-              <span className="text-xs text-[#5A554C]">
-                {syncSummary.saved_leads} saved • {syncSummary.skipped_duplicates} already in CRM •{' '}
-                {syncSummary.created_approvals} queued for approval
-              </span>
-            )}
+      {/* Two-Column Real-Time Autopilot Stream + iPhone PWA Notifications */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3">
+            <div>
+              <h2 className="text-base font-bold text-[#151B2B]">Recent Autonomous Cycles</h2>
+              <p className="text-xs text-[#667085]">Automatic scheduled sweeps & outreach runs</p>
+            </div>
+            <span className="text-[11px] font-bold text-[#FF6B35] uppercase">Auto Every 2h</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {prospects.map((p, idx) => (
-              <div
-                key={`${p.organisation_name || 'lead'}-${idx}`}
-                className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 space-y-3 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#11100E]">
-                      {p.organisation_name || 'Verified Prospect'}
-                    </h3>
-                    <p className="text-xs text-[#5A554C] mt-0.5">
-                      {p.location || 'Global'} • {p.category || 'Institution'}
-                    </p>
+          {recentRuns.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[#667085]">
+              Waiting for first automated cycle result.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentRuns.map((run) => (
+                <div
+                  key={run.id}
+                  className="rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-3.5 text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-[#151B2B]">{run.command}</span>
+                    <span className="text-[10px] text-[#667085]">
+                      {new Date(run.created_at).toLocaleString()}
+                    </span>
                   </div>
-                  <span className="shrink-0 rounded-full bg-[#EA580C] px-2.5 py-0.5 text-xs font-bold text-[#FAF6EE]">
-                    Score {p.homs_score ?? '—'}/100
-                  </span>
+                  <p className="text-[#525A6B]">{run.result_summary}</p>
                 </div>
-
-                {p.whatsapp_draft && (
-                  <p className="rounded-xl bg-[#FAF6EE] border border-[#E5DDD0] p-3 text-xs text-[#5A554C] leading-relaxed">
-                    “{p.whatsapp_draft}”
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <span className="text-[#C2410C] font-bold">
-                    {p.recommended_package || 'ZenLyft HOMS'}
-                  </span>
-                  <Link
-                    href="/dashboard/approvals"
-                    className="font-bold text-[#11100E] underline underline-offset-4 hover:text-[#EA580C]"
-                  >
-                    Approve & Send WhatsApp &rarr;
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Collapsible Technical Drawer */}
-      <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] overflow-hidden">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3">
+            <div>
+              <h2 className="text-base font-bold text-[#151B2B]">iPhone PWA Alert Stream</h2>
+              <p className="text-xs text-[#667085]">Every single event pushed directly to you</p>
+            </div>
+            <Link
+              href="/dashboard/settings"
+              className="text-xs font-bold text-[#FF6B35] hover:text-[#E05220]"
+            >
+              Configure PWA &rarr;
+            </Link>
+          </div>
+
+          {alerts.length === 0 ? (
+            <div className="py-8 text-center text-xs text-[#667085]">
+              Tap the Alerts bell at the top right to pair your iPhone PWA for lock-screen push notifications.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {alerts.map((n) => (
+                <Link
+                  key={n.id}
+                  href={n.url || '/dashboard/approvals'}
+                  className="block rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-3.5 text-xs hover:border-[#FF6B35] transition"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-[#151B2B]">{n.title}</span>
+                    <span className="text-[10px] uppercase font-bold text-[#E05220]">
+                      {n.category.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <p className="text-[#525A6B] mt-0.5">{n.body}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Optional Collapsed Manual City Targeting (Zero Required Clicks) */}
+      <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] overflow-hidden">
         <button
           type="button"
-          onClick={() => setShowTechDetails((prev) => !prev)}
-          className="w-full px-5 py-3.5 flex items-center justify-between text-xs font-bold text-[#5A554C] hover:text-[#11100E] transition"
+          onClick={() => setShowManualOverride((p) => !p)}
+          className="w-full px-5 py-3.5 flex items-center justify-between text-xs font-bold text-[#525A6B] hover:text-[#151B2B] transition"
         >
-          <span>System & Engine Telemetry</span>
-          <span>{showTechDetails ? 'Hide Details ▲' : 'Show Details ▼'}</span>
+          <span>Optional: Manual City Override & Agent Workforce Telemetry</span>
+          <span>{showManualOverride ? 'Hide ▲' : 'Show ▼'}</span>
         </button>
 
-        {showTechDetails && (
-          <div className="px-5 pb-5 pt-2 border-t border-[#E5DDD0] space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div className="rounded-xl bg-[#FAF6EE] border border-[#E5DDD0] p-3">
-                <div className="text-[#7C756A]">Active Agent Slots</div>
-                <div className="text-base font-black text-[#11100E] mt-1">
-                  {status?.active_agent_slots ?? 5} / 5 (of {status?.total_agent_roles ?? 59})
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#FAF6EE] border border-[#E5DDD0] p-3">
-                <div className="text-[#7C756A]">Spend Lock</div>
-                <div className="text-base font-black text-emerald-800 mt-1">
-                  ₹0 ($0.0000)
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#FAF6EE] border border-[#E5DDD0] p-3">
-                <div className="text-[#7C756A]">Paperclip Scheduler</div>
-                <div className="text-base font-black text-[#11100E] mt-1">
-                  {paperclip?.ready ? 'READY' : 'Standby'} ({paperclip?.routines_count ?? 6})
-                </div>
-              </div>
-              <div className="rounded-xl bg-[#FAF6EE] border border-[#E5DDD0] p-3">
-                <div className="text-[#7C756A]">Engine Stack</div>
-                <div className="text-xs font-bold text-[#11100E] mt-1">
-                  {status?.orchestrator || 'LangGraph + CrewAI'}
-                </div>
-              </div>
+        {showManualOverride && (
+          <div className="px-5 pb-5 pt-3 border-t border-[#E4E7EC] space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={manualCity}
+                onChange={(e) => setManualCity(e.target.value)}
+                placeholder="Optional: target specific city immediately (e.g. Dubai, London, Bengaluru)..."
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#F5F6F8] border border-[#D0D5DD] text-xs text-[#151B2B] placeholder-[#667085] focus:outline-none focus:border-[#FF6B35]"
+              />
+              <button
+                type="button"
+                disabled={syncing || isPaused}
+                onClick={() => triggerCycle(manualCity)}
+                className="px-5 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#E05220] disabled:opacity-50 text-xs font-bold text-[#FFFFFF] whitespace-nowrap"
+              >
+                {syncing ? 'Scanning...' : 'Scan City Now'}
+              </button>
             </div>
 
             {departments.length > 0 && (
@@ -446,10 +457,10 @@ export default function AscensionClient() {
                 {departments.map((d) => (
                   <div
                     key={d.key}
-                    className="rounded-lg bg-[#FAF6EE] border border-[#E5DDD0] px-3 py-2 flex items-center justify-between text-xs"
+                    className="rounded-lg bg-[#F5F6F8] border border-[#E4E7EC] px-3 py-2 flex items-center justify-between text-xs"
                   >
-                    <span className="text-[#11100E] font-semibold">{d.name}</span>
-                    <span className="text-[#7C756A] font-mono">{d.role_count} roles</span>
+                    <span className="text-[#151B2B] font-semibold">{d.name}</span>
+                    <span className="text-[#667085] font-mono">{d.role_count} roles</span>
                   </div>
                 ))}
               </div>

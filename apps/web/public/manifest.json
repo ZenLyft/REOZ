@@ -1,22 +1,25 @@
 {
   "name": "REOZ by ZenLyft",
   "short_name": "REOZ",
-  "description": "REOZ - Revenue Engine & Operating Zone for ZenLyft",
+  "description": "REOZ - Autonomous Global Client Acquisition & Revenue Engine for ZenLyft",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#4f46e5",
+  "background_color": "#F5F6F8",
+  "theme_color": "#FF6B35",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

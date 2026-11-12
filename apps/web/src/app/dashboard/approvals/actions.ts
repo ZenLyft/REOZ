@@ -10,6 +10,7 @@ import {
   getOpenWAConfig,
   formatWhatsAppChatId,
 } from '@/lib/integrations/openwa-client';
+import { notifyFounder } from '@/lib/integrations/web-push';
 
 export interface OpenWaGatewayStatus {
   status: string;
@@ -289,6 +290,15 @@ export async function dispatchApprovedDraftViaOpenWAAction(
   revalidatePath('/dashboard/whatsapp');
   revalidatePath('/dashboard/leads');
   revalidatePath('/dashboard');
+
+  await notifyFounder({
+    category: 'system',
+    title: `Sent via Founder Permission`,
+    body: `Dispatched WhatsApp message to ${cleanPhone} with your approval.`,
+    url: '/dashboard/whatsapp',
+    leadId: draft?.lead_id || null,
+    approvalId,
+  });
 
   return { success: true, messageId: sendResult.messageId };
 }

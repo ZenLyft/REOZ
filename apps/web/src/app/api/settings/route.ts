@@ -34,11 +34,15 @@ export async function GET() {
       success: true,
       settings: data || {
         id: SETTINGS_ID,
-        autonomy_level: 1,
+        autonomy_level: 3,
         emergency_stop_active: false,
         daily_discovery_limit: 100,
         active_market_country: 'Global (Worldwide)',
         active_market_regions: ['Americas', 'Europe & UK', 'Middle East & Africa', 'Asia-Pacific & India'],
+        auto_pilot_enabled: true,
+        auto_send_first_cold: true,
+        notify_every_event: true,
+        next_permission_founder_only: true,
       },
       integrations: {
         groqConfigured: Boolean(process.env.GROQ_API_KEY),
@@ -71,8 +75,27 @@ export async function PATCH(req: NextRequest) {
     };
 
     if (typeof body.autonomy_level === 'number') {
-      // Levels 3 and 4 are non-delegable escalation/founder rules; configurable autonomy is 1 or 2.
-      updates.autonomy_level = body.autonomy_level === 2 ? 2 : 1;
+      // Levels 1-3 configurable by Founder (Level 3 = Auto 1st Cold Outreach; Level 4 custom contracts always gated)
+      const lvl = Math.round(body.autonomy_level);
+      updates.autonomy_level = lvl === 3 ? 3 : lvl === 2 ? 2 : 1;
+      updates.evolution_api_auto_send = updates.autonomy_level === 3;
+    }
+
+    if (typeof body.auto_pilot_enabled === 'boolean') {
+      updates.auto_pilot_enabled = body.auto_pilot_enabled;
+    }
+
+    if (typeof body.auto_send_first_cold === 'boolean') {
+      updates.auto_send_first_cold = body.auto_send_first_cold;
+      updates.evolution_api_auto_send = body.auto_send_first_cold;
+    }
+
+    if (typeof body.notify_every_event === 'boolean') {
+      updates.notify_every_event = body.notify_every_event;
+    }
+
+    if (typeof body.next_permission_founder_only === 'boolean') {
+      updates.next_permission_founder_only = body.next_permission_founder_only;
     }
 
     if (typeof body.emergency_stop_active === 'boolean') {

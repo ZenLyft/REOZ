@@ -78,7 +78,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Executive Header Card */}
-      <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div
             className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-2.5 ${
@@ -97,10 +97,10 @@ export default async function DashboardPage() {
               : `Live • Autonomy Level ${autonomyLevel} • ${activeMarket}`}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
             Welcome back, {user?.email?.split('@')[0] || 'Founder'}
           </h1>
-          <p className="text-sm text-[#5A554C] mt-1">
+          <p className="text-sm text-[#525A6B] mt-1">
             ZenLyft Global Revenue Operations — Find clients, approve outreach in 1 tap, and track real cash collected.
           </p>
         </div>
@@ -108,13 +108,13 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/dashboard/ascension"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#EA580C] text-[#FAF6EE] hover:bg-[#C2410C] transition shadow-sm"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#FF6B35] text-[#F5F6F8] hover:bg-[#E05220] transition shadow-sm"
           >
             Find Clients Worldwide
           </Link>
           <Link
             href="/dashboard/approvals"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#11100E] bg-[#11100E] text-[#FAF6EE] hover:bg-[#272420] transition"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#151B2B] bg-[#151B2B] text-[#F5F6F8] hover:bg-[#2B313C] transition"
           >
             Approvals ({approvalsCount})
           </Link>
@@ -125,71 +125,71 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           href="/dashboard/leads"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
+          className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm hover:border-[#FF6B35] transition block"
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
             Discovered Leads
           </div>
-          <div className="text-3xl font-black text-[#11100E] mt-2 tabular-nums">
+          <div className="text-3xl font-black text-[#151B2B] mt-2 tabular-nums">
             {discoveredCount}
           </div>
-          <div className="text-xs text-[#5A554C] mt-1">
+          <div className="text-xs text-[#525A6B] mt-1">
             {qualifiedCount} qualified (score ≥ 60)
           </div>
         </Link>
 
         <Link
           href="/dashboard/approvals"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
+          className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm hover:border-[#FF6B35] transition block"
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
             Pending Approvals
           </div>
-          <div className="text-3xl font-black text-[#EA580C] mt-2 tabular-nums">
+          <div className="text-3xl font-black text-[#FF6B35] mt-2 tabular-nums">
             {approvalsCount}
           </div>
-          <div className="text-xs text-[#5A554C] mt-1">Ready for 1-tap sign-off</div>
+          <div className="text-xs text-[#525A6B] mt-1">Ready for 1-tap sign-off</div>
         </Link>
 
         <Link
           href="/dashboard/projects"
-          className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 shadow-sm hover:border-[#EA580C] transition block"
+          className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm hover:border-[#FF6B35] transition block"
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#7C756A]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
             Active Clients & Won
           </div>
-          <div className="text-3xl font-black text-[#11100E] mt-2 tabular-nums">
+          <div className="text-3xl font-black text-[#151B2B] mt-2 tabular-nums">
             {projectsCount}
           </div>
-          <div className="text-xs text-[#5A554C] mt-1">
+          <div className="text-xs text-[#525A6B] mt-1">
             {wonCount} won CRM deals
           </div>
         </Link>
 
         <Link
           href="/dashboard/revenue"
-          className="rounded-2xl border-2 border-[#EA580C] bg-[#11100E] p-5 shadow-sm hover:bg-[#1E1C18] transition block text-[#FAF6EE]"
+          className="rounded-2xl border-2 border-[#FF6B35] bg-[#151B2B] p-5 shadow-sm hover:bg-[#2B313C] transition block text-[#F5F6F8]"
         >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#FB923C]">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-[#FF8A5B]">
             Verified Cash Collected
           </div>
-          <div className="text-3xl font-black text-[#FAF6EE] mt-2 tabular-nums">
+          <div className="text-3xl font-black text-[#F5F6F8] mt-2 tabular-nums">
             ₹{verifiedCashInr.toLocaleString('en-IN')}
           </div>
-          <div className="text-xs text-[#D6CCB9] mt-1">
+          <div className="text-xs text-[#CBD5E1] mt-1">
             ₹{invoicedTotalInr.toLocaleString('en-IN')} invoiced total
           </div>
         </Link>
       </div>
 
       {/* 30-Day Revenue Cohort Velocity */}
-      <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-6 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#E5DDD0] pb-4">
+      <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#E4E7EC] pb-4">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#EA580C]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B35]">
               Acquisition Velocity Target
             </span>
-            <h2 className="text-base font-bold text-[#11100E]">
+            <h2 className="text-base font-bold text-[#151B2B]">
               {cohortKpis.weekly_leads_target} Unique Leads • {cohortKpis.weekly_onboarding_target} Onboarded Clients (≥10% Conversion)
             </h2>
           </div>
@@ -207,57 +207,57 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
-              <span className="text-[#11100E]">1. Discovered Global Prospects</span>
-              <span className="font-mono text-[#11100E]">
+              <span className="text-[#151B2B]">1. Discovered Global Prospects</span>
+              <span className="font-mono text-[#151B2B]">
                 {discoveredCount} / {cohortKpis.weekly_leads_target} ({cohortKpis.weekly_leads_progress_pct}%)
               </span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-[#EFE7DA] overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-[#ECEFF3] overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#EA580C] transition-all duration-500"
+                className="h-full rounded-full bg-[#FF6B35] transition-all duration-500"
                 style={{ width: `${cohortKpis.weekly_leads_progress_pct}%` }}
               />
             </div>
-            <span className="text-[11px] text-[#7C756A] block">
+            <span className="text-[11px] text-[#667085] block">
               Live verified colleges, hostels & SMEs across Americas, Europe, MEA & APAC
             </span>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
-              <span className="text-[#11100E]">2. Onboarded Paying Clients</span>
+              <span className="text-[#151B2B]">2. Onboarded Paying Clients</span>
               <span className="font-mono text-emerald-800">
                 {wonCount} / {cohortKpis.weekly_onboarding_target} ({cohortKpis.weekly_onboarding_progress_pct}%)
               </span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-[#EFE7DA] overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-[#ECEFF3] overflow-hidden">
               <div
                 className="h-full rounded-full bg-emerald-700 transition-all duration-500"
                 style={{ width: `${cohortKpis.weekly_onboarding_progress_pct}%` }}
               />
             </div>
-            <span className="text-[11px] text-[#7C756A] block">
-              Conversion Rate: <strong className="text-[#11100E]">{cohortKpis.conversion_rate_pct}%</strong>
+            <span className="text-[11px] text-[#667085] block">
+              Conversion Rate: <strong className="text-[#151B2B]">{cohortKpis.conversion_rate_pct}%</strong>
             </span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-[#E5DDD0] bg-[#FAF6EE] p-4 text-xs space-y-1">
+        <div className="rounded-xl border border-[#E4E7EC] bg-[#F5F6F8] p-4 text-xs space-y-1">
           <div>
-            <span className="font-bold text-[#11100E]">Live Diagnostic: </span>
-            <span className="text-[#5A554C]">{cohortKpis.bottleneck_diagnosis}</span>
+            <span className="font-bold text-[#151B2B]">Live Diagnostic: </span>
+            <span className="text-[#525A6B]">{cohortKpis.bottleneck_diagnosis}</span>
           </div>
           <div>
-            <span className="font-bold text-[#EA580C]">Recommended Action: </span>
-            <span className="text-[#11100E]">{cohortKpis.recommended_corrective_action}</span>
+            <span className="font-bold text-[#FF6B35]">Recommended Action: </span>
+            <span className="text-[#151B2B]">{cohortKpis.recommended_corrective_action}</span>
           </div>
         </div>
       </div>
 
       {/* Zero-Trust Safeguard + Quick Revenue Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#11100E] text-[#FAF6EE] flex items-center justify-center shrink-0">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#151B2B] text-[#F5F6F8] flex items-center justify-center shrink-0">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -268,38 +268,38 @@ export default async function DashboardPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-[#11100E]">
+            <h3 className="text-sm font-bold text-[#151B2B]">
               ₹0 Strict Guardrail & Cryptographic Approval Lock
             </h3>
-            <p className="text-xs text-[#5A554C] mt-1 leading-relaxed">
+            <p className="text-xs text-[#525A6B] mt-1 leading-relaxed">
               Discovery & drafting run on zero cloud LLM spend. Every outbound WhatsApp pitch is SHA-256 hashed and held until your 1-tap founder approval.
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] p-5 flex flex-col justify-between gap-3">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 flex flex-col justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-[#11100E]">Revenue Closing Shortcuts</h3>
-            <p className="text-xs text-[#5A554C] mt-0.5">
+            <h3 className="text-sm font-bold text-[#151B2B]">Revenue Closing Shortcuts</h3>
+            <p className="text-xs text-[#525A6B] mt-0.5">
               Move fast from discovery to signed contracts and collected payments.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/dashboard/projects"
-              className="rounded-xl bg-[#F4EEE3] border border-[#DDD4C4] px-3 py-1.5 text-xs font-semibold text-[#11100E] hover:bg-[#EAE1D2]"
+              className="rounded-xl bg-[#ECEFF3] border border-[#D0D5DD] px-3 py-1.5 text-xs font-semibold text-[#151B2B] hover:bg-[#E2E6EC]"
             >
               + Onboard Client
             </Link>
             <Link
               href="/dashboard/revenue"
-              className="rounded-xl bg-[#F4EEE3] border border-[#DDD4C4] px-3 py-1.5 text-xs font-semibold text-[#11100E] hover:bg-[#EAE1D2]"
+              className="rounded-xl bg-[#ECEFF3] border border-[#D0D5DD] px-3 py-1.5 text-xs font-semibold text-[#151B2B] hover:bg-[#E2E6EC]"
             >
               + Issue Invoice / Record Cash
             </Link>
             <Link
               href="/dashboard/products"
-              className="rounded-xl bg-[#F4EEE3] border border-[#DDD4C4] px-3 py-1.5 text-xs font-semibold text-[#11100E] hover:bg-[#EAE1D2]"
+              className="rounded-xl bg-[#ECEFF3] border border-[#D0D5DD] px-3 py-1.5 text-xs font-semibold text-[#151B2B] hover:bg-[#E2E6EC]"
             >
               Pricing Catalogue
             </Link>
@@ -308,43 +308,43 @@ export default async function DashboardPage() {
       </div>
 
       {/* Live Audit Stream */}
-      <div className="rounded-2xl border border-[#E5DDD0] bg-[#FFFDF9] shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-[#E5DDD0] flex items-center justify-between">
+      <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-[#E4E7EC] flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#11100E]">Security & Activity Audit Log</h3>
-            <p className="text-xs text-[#5A554C] mt-0.5">
+            <h3 className="text-base font-bold text-[#151B2B]">Security & Activity Audit Log</h3>
+            <p className="text-xs text-[#525A6B] mt-0.5">
               Immutable trail of logins, approvals, client onboarding, and verified payments
             </p>
           </div>
           <Link
             href="/dashboard/audit"
-            className="text-xs font-bold text-[#11100E] underline underline-offset-4 hover:text-[#EA580C]"
+            className="text-xs font-bold text-[#151B2B] underline underline-offset-4 hover:text-[#FF6B35]"
           >
             View All &rarr;
           </Link>
         </div>
 
-        <div className="divide-y divide-[#EFE7DA] font-mono">
+        <div className="divide-y divide-[#ECEFF3] font-mono">
           {auditLogs.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[#7C756A]">
+            <div className="p-8 text-center text-xs text-[#667085]">
               No audit events recorded yet. Live operations will stream here automatically.
             </div>
           ) : (
             auditLogs.map((log) => (
               <div
                 key={log.id}
-                className="p-4 flex items-center justify-between hover:bg-[#FAF6EE] transition-colors"
+                className="p-4 flex items-center justify-between hover:bg-[#F5F6F8] transition-colors"
               >
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#F2EBE0] text-[#11100E]">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-[#ECEFF3] text-[#151B2B]">
                       {log.action}
                     </span>
-                    <span className="text-xs text-[#5A554C]">
+                    <span className="text-xs text-[#525A6B]">
                       by {log.actor_type}:{log.actor_id?.slice(0, 12)}
                     </span>
                   </div>
-                  <div className="text-xs text-[#7C756A]">
+                  <div className="text-xs text-[#667085]">
                     Object: {log.object_type} ({log.object_id?.slice(0, 12)})
                   </div>
                 </div>
@@ -360,7 +360,7 @@ export default async function DashboardPage() {
                   >
                     {log.result}
                   </span>
-                  <div className="text-[10px] text-[#7C756A] mt-1">
+                  <div className="text-[10px] text-[#667085] mt-1">
                     {new Date(log.timestamp).toLocaleTimeString()}
                   </div>
                 </div>

@@ -21,11 +21,11 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#E5DDD0] pb-5">
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#11100E]">
+      <div className="border-b border-[#E4E7EC] pb-5">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
           Client Onboarding & Delivery
         </h1>
-        <p className="mt-1 text-sm text-[#5A554C]">
+        <p className="mt-1 text-sm text-[#525A6B]">
           Convert qualified or won prospects into live client workspaces with milestone tracking and automated invoice creation.
         </p>
       </div>
