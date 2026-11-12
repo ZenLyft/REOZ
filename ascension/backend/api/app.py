@@ -1,5 +1,6 @@
 """ZenLyft Ascension Central Command FastAPI Service."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 from uuid import uuid4
@@ -8,6 +9,8 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ascension.backend.core.config import get_settings
+from ascension.integrations.zoho.router import zoho_router
+from ascension.integrations.zoho.service import zoho_sync_scheduler_loop
 from ascension.backend.core.security import (
     KillSwitchController,
     KillSwitchEngagedError,
@@ -67,9 +70,16 @@ runtime = AscensionRuntime()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    sync_task: asyncio.Task[None] | None = None
     async with open_checkpointer(runtime.settings.database_url) as saver:
         runtime.control_plane.bind_checkpointer(saver)
-        yield
+        if runtime.settings.email_sync_enabled:
+            sync_task = asyncio.create_task(zoho_sync_scheduler_loop(runtime.settings))
+        try:
+            yield
+        finally:
+            if sync_task and not sync_task.done():
+                sync_task.cancel()
 
 
 app = FastAPI(
@@ -78,6 +88,7 @@ app = FastAPI(
     description="Unified Multi-Agent Workforce (LangGraph + CrewAI + Orchester Adapter + n8n + G.E.N.I.)",
     lifespan=lifespan,
 )
+app.include_router(zoho_router)
 
 
 def _require_api_auth(authorization: str | None = Header(default=None)) -> None:
@@ -131,6 +142,16 @@ async def health() -> dict[str, Any]:
         "orchester": runtime.orchester.capabilities(),
         "paperclip": runtime.paperclip.status(),
         "providers": runtime.gateway.configured_providers(),
+        "zoho_mail": {
+            "oauth_configured": bool(
+                runtime.settings.zoho_client_id.strip()
+                and runtime.settings.zoho_client_secret.strip()
+                and len(runtime.settings.zoho_refresh_token_encryption_key.strip()) >= 16
+            ),
+            "email_sync_enabled": runtime.settings.email_sync_enabled,
+            "email_send_enabled": runtime.settings.email_send_enabled,
+            "email_require_approval": runtime.settings.email_require_approval,
+        },
     }
 
 

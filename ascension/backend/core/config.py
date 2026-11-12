@@ -58,6 +58,28 @@ class AscensionSettings(BaseSettings):
     ascension_public_url: str = Field(default="", alias="ASCENSION_PUBLIC_URL")
     allow_private_http: bool = Field(default=False, alias="ALLOW_PRIVATE_HTTP")
 
+    # Zoho Mail OAuth 2.0 & Real-Time Email Workflow (secrets via env only)
+    zoho_client_id: str = Field(default="", alias="ZOHO_CLIENT_ID")
+    zoho_client_secret: str = Field(default="", alias="ZOHO_CLIENT_SECRET")
+    zoho_redirect_uri: str = Field(
+        default="https://zenlyft-ascension.onrender.com/api/integrations/zoho/callback",
+        alias="ZOHO_REDIRECT_URI",
+    )
+    zoho_accounts_base_url: str = Field(
+        default="https://accounts.zoho.in", alias="ZOHO_ACCOUNTS_BASE_URL"
+    )
+    zoho_mail_api_base_url: str = Field(
+        default="https://mail.zoho.in", alias="ZOHO_MAIL_API_BASE_URL"
+    )
+    zoho_refresh_token_encryption_key: str = Field(
+        default="", alias="ZOHO_REFRESH_TOKEN_ENCRYPTION_KEY"
+    )
+    email_sync_enabled: bool = Field(default=False, alias="EMAIL_SYNC_ENABLED")
+    email_sync_interval_seconds: int = Field(default=60, alias="EMAIL_SYNC_INTERVAL_SECONDS")
+    email_send_enabled: bool = Field(default=False, alias="EMAIL_SEND_ENABLED")
+    email_require_approval: bool = Field(default=True, alias="EMAIL_REQUIRE_APPROVAL")
+    frontend_app_url: str = Field(default="http://localhost:3000", alias="FRONTEND_APP_URL")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> AscensionSettings:

@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getAscensionConfig } from '@/lib/integrations/ascension-client';
 import { listActivePushSubscriptions, resolveVapidConfig } from '@/lib/integrations/web-push';
+import { getZohoPublicStatus } from '@/lib/integrations/zoho-store';
 import { SettingsClient } from './SettingsClient';
+import { ZohoIntegrationCard } from './ZohoIntegrationCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +12,7 @@ export default async function SettingsPage() {
   const supabase = createClient();
   const admin = createAdminClient();
 
-  const [{ data: settings }, { data: flagFact }, subscriptions, vapid] = await Promise.all([
+  const [{ data: settings }, { data: flagFact }, subscriptions, vapid, zohoStatus] = await Promise.all([
     supabase
       .from('system_settings')
       .select('*')
@@ -22,6 +25,7 @@ export default async function SettingsPage() {
       .maybeSingle(),
     listActivePushSubscriptions(),
     resolveVapidConfig(),
+    getZohoPublicStatus(admin).catch(() => null),
   ]);
 
   const flags = (flagFact?.metadata || {}) as {
@@ -64,6 +68,10 @@ export default async function SettingsPage() {
       </div>
 
       <SettingsClient initialSettings={initialSettings} />
+
+      <Suspense fallback={null}>
+        <ZohoIntegrationCard initialStatus={zohoStatus} />
+      </Suspense>
     </div>
   );
 }

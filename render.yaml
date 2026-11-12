@@ -27,4 +27,26 @@ services:
         sync: false
       - key: ASCENSION_API_SECRET
         sync: false
+      - key: ZOHO_CLIENT_ID
+        sync: false
+      - key: ZOHO_CLIENT_SECRET
+        sync: false
+      - key: ZOHO_REDIRECT_URI
+        value: "https://zenlyft-ascension.onrender.com/api/integrations/zoho/callback"
+      - key: ZOHO_ACCOUNTS_BASE_URL
+        value: "https://accounts.zoho.in"
+      - key: ZOHO_MAIL_API_BASE_URL
+        value: "https://mail.zoho.in"
+      - key: ZOHO_REFRESH_TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: EMAIL_SYNC_ENABLED
+        value: "false"
+      - key: EMAIL_SYNC_INTERVAL_SECONDS
+        value: "60"
+      - key: EMAIL_SEND_ENABLED
+        value: "false"
+      - key: EMAIL_REQUIRE_APPROVAL
+        value: "true"
+      - key: FRONTEND_APP_URL
+        sync: false
 

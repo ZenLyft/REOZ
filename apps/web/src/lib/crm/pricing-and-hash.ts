@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { z } from 'zod';
 
 export interface PricingCataloguePackage {
   id: string;
@@ -9,6 +8,16 @@ export interface PricingCataloguePackage {
   exclusions: string[];
   estimated_timeline_days: number;
   approved_price_inr: number;
+}
+
+export interface CanonicalApprovalPayload {
+  lead_id: string;
+  recipient: string;
+  channel: 'whatsapp' | 'email';
+  message_content: string;
+  subject?: string | null;
+  template_version: string;
+  approval_scope: string;
 }
 
 export const APPROVED_PRICING_CATALOGUE: readonly PricingCataloguePackage[] = [
@@ -62,9 +71,25 @@ export function getApprovedPackage(packageId: string): PricingCataloguePackage |
   return APPROVED_PRICING_CATALOGUE.find((p) => p.id === packageId) || null;
 }
 
+export function isFullSha256Hash(hash?: string | null): boolean {
+  return Boolean(hash && /^[0-9a-f]{64}$/i.test(hash.trim()));
+}
+
 /**
- * Computes a SHA-256 hash of the exact message draft and recipient.
- * If a single character changes in the draft, the hash invalidates automatically.
+ * Normalizes a recipient address/number for consistent cryptographic binding.
+ */
+export function normalizeRecipientForHash(recipient: string, channel?: 'whatsapp' | 'email'): string {
+  const trimmed = String(recipient || '').trim();
+  if (channel === 'whatsapp' || (!trimmed.includes('@') && /\d{7,}/.test(trimmed))) {
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length === 10) return `91${digits}`;
+    if (digits.length > 0) return digits;
+  }
+  return trimmed.toLowerCase();
+}
+
+/**
+ * Legacy helper preserved for backward compatibility: SHA-256 of recipient + draft text.
  */
 export function computeDraftHash(draftContent: string, recipient: string): string {
   const normalized = `${recipient.trim().toLowerCase()}::${draftContent}`;
@@ -72,6 +97,37 @@ export function computeDraftHash(draftContent: string, recipient: string): strin
 }
 
 export function verifyDraftHash(draftContent: string, recipient: string, expectedHash: string): boolean {
+  if (!isFullSha256Hash(expectedHash)) {
+    return false;
+  }
   const actualHash = computeDraftHash(draftContent, recipient);
-  return actualHash === expectedHash;
+  return actualHash === expectedHash.trim().toLowerCase();
+}
+
+/**
+ * Canonical SHA-256 payload digest bound to exact Lead ID, Recipient, Channel,
+ * Message Content, Subject, Template Version, and Approval Scope.
+ */
+export function computeCanonicalApprovalHash(payload: CanonicalApprovalPayload): string {
+  const canonical = JSON.stringify({
+    approval_scope: String(payload.approval_scope || 'first_contact').trim(),
+    channel: payload.channel,
+    lead_id: String(payload.lead_id || '').trim(),
+    message_content: String(payload.message_content || ''),
+    recipient: normalizeRecipientForHash(payload.recipient, payload.channel),
+    subject: payload.subject ? String(payload.subject).trim() : '',
+    template_version: String(payload.template_version || 'research-v2').trim(),
+  });
+  return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+}
+
+export function verifyCanonicalApprovalHash(
+  payload: CanonicalApprovalPayload,
+  expectedHash: string
+): boolean {
+  if (!isFullSha256Hash(expectedHash)) {
+    return false;
+  }
+  const actual = computeCanonicalApprovalHash(payload);
+  return actual === expectedHash.trim().toLowerCase();
 }

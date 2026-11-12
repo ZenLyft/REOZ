@@ -1,9 +1,9 @@
 import { syncPipelineResultsToCrm, type PipelineQualifiedLead, type PipelineOutreachDraft } from './ascension-sync';
+import { ALL_INDIA_STATES_AND_HUBS } from '@/lib/ai/zenlyft-client-engine';
 import {
-  ALL_INDIA_STATES_AND_HUBS,
-  generateFirstContactOutreach,
-  scoreProspect100Point,
-} from '@/lib/ai/zenlyft-client-engine';
+  researchAndPrepareOutreach,
+  type OutreachIntelligenceDossier,
+} from '@/lib/ai/outreach-intelligence';
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
@@ -129,13 +129,6 @@ async function queryOverpass(query: string): Promise<OverpassElement[]> {
   return [];
 }
 
-function buildHomsOutreachDraft(name: string, city: string, hasWebsite: boolean): string {
-  const gapNote = hasWebsite
-    ? 'We noticed your campus uses separate desk/portal steps for student outpass & warden approvals.'
-    : 'We noticed your campus appears in OpenStreetMap without an automated student outpass & warden portal.';
-  return `Hi ${name} team (${city}), ${gapNote} ZenLyft HOMS digitises QR student gatepasses, automated warden approvals, and instant parent WhatsApp alerts in 14 days (₹35,000 flat). Would you like a 5-minute live walkthrough this week?`;
-}
-
 export interface GlobalDiscoveryResult {
   city: string;
   qualified_leads: Array<{
@@ -145,7 +138,11 @@ export interface GlobalDiscoveryResult {
     homs_score: number;
     recommended_package: string;
     whatsapp_draft: string;
+    email_subject?: string;
+    email_draft?: string;
     website_url: string | null;
+    quality_score?: number;
+    industry_class?: string;
   }>;
   crm_sync: {
     saved_leads: number;
@@ -155,9 +152,24 @@ export interface GlobalDiscoveryResult {
   };
 }
 
+function classifyOsmCategory(tags: Record<string, string>): { category: string; industry: string } {
+  if (tags.tourism === 'hostel') return { category: 'Hostel / Student Housing', industry: 'Education' };
+  if (tags.amenity === 'hospital' || tags.amenity === 'clinic') {
+    return { category: 'Hospital / Healthcare', industry: 'Healthcare' };
+  }
+  if (tags.leisure === 'fitness_centre') {
+    return { category: 'Fitness Centre / Gym', industry: 'Fitness' };
+  }
+  if (tags.amenity === 'college' || tags.amenity === 'university') {
+    return { category: 'College / Educational Institution', industry: 'Education' };
+  }
+  return { category: 'Commercial Organization', industry: 'Business' };
+}
+
 /**
- * Discovers real institutions worldwide using OpenStreetMap (Nominatim + Overpass),
- * scores fit for ZenLyft HOMS, and syncs leads + 1-tap approval drafts into Supabase.
+ * Discovers real institutions & businesses worldwide using OpenStreetMap (Nominatim + Overpass),
+ * executes per-prospect Business Intelligence research via researchAndPrepareOutreach(),
+ * and queues Founder-approved WhatsApp + Email drafts into Supabase (never auto-sends).
  */
 export async function runGlobalOsmDiscovery(options: {
   regionOrCity: string;
@@ -175,6 +187,8 @@ export async function runGlobalOsmDiscovery(options: {
       node["amenity"="college"](around:${coords.radius},${coords.lat},${coords.lon});
       way["amenity"="college"](around:${coords.radius},${coords.lat},${coords.lon});
       node["amenity"="university"](around:${coords.radius},${coords.lat},${coords.lon});
+      node["amenity"="hospital"](around:${coords.radius},${coords.lat},${coords.lon});
+      node["leisure"="fitness_centre"](around:${coords.radius},${coords.lat},${coords.lon});
     );
     out tags ${boundedLimit * 3};
   `;
@@ -183,6 +197,7 @@ export async function runGlobalOsmDiscovery(options: {
   const seen = new Set<string>();
   const qualified: PipelineQualifiedLead[] = [];
   const drafts: PipelineOutreachDraft[] = [];
+  const dossierByOrg = new Map<string, OutreachIntelligenceDossier>();
 
   for (const el of elements) {
     const tags = el.tags || {};
@@ -193,34 +208,39 @@ export async function runGlobalOsmDiscovery(options: {
     if (!norm || seen.has(norm)) continue;
     seen.add(norm);
 
-    const isHostel = tags.tourism === 'hostel';
-    const category = isHostel ? 'Hostel / Student Housing' : 'College / Institution';
+    const { category, industry } = classifyOsmCategory(tags);
     const website = tags.website || tags['contact:website'] || null;
     const phone = tags.phone || tags['contact:phone'] || tags['contact:mobile'] || null;
-
-    const outreach = generateFirstContactOutreach({
-      companyName: name,
-      category,
-      industry: 'Education',
-      location: city,
-      hasWebsite: Boolean(website),
-      channel: 'WHATSAPP',
-    });
-    const qualification = scoreProspect100Point({
-      industry: 'Education',
-      hasDecisionMaker: true,
-      identifiedChallenge: !website || isHostel,
-      serviceRoute: outreach.service_route,
-      hasPhoneOrEmail: Boolean(phone),
-      hasWebsite: Boolean(website),
-    });
-    const score = qualification.score;
+    const email = tags.email || tags['contact:email'] || null;
     const sourceRef =
       el.type && el.id
         ? `https://www.openstreetmap.org/${el.type}/${el.id}`
         : 'https://www.openstreetmap.org';
-    const draftMessage = buildHomsOutreachDraft(name, city, Boolean(website));
-    const finalDraft = outreach.message || draftMessage;
+
+    const dossier = await researchAndPrepareOutreach(
+      {
+        company_name: name,
+        industry,
+        category,
+        location: city,
+        website_url: website,
+        public_phone: phone,
+        public_email: email,
+        research_sources: [sourceRef, ...(website ? [website] : [])],
+        observed_facts: [
+          `Verified ${category} listing in ${city} via OpenStreetMap.`,
+          ...(website ? [`Official website listed: ${website}`] : ['Website URL not listed in OpenStreetMap record.']),
+        ],
+      },
+      { inspectWebsite: Boolean(website) }
+    );
+
+    if (dossier.status === 'NOT_A_FIT' || dossier.status === 'SUPPRESSED') {
+      continue;
+    }
+
+    dossierByOrg.set(name, dossier);
+    const priority = dossier.lead_score >= 75 ? 'HIGH' : dossier.lead_score >= 55 ? 'MEDIUM' : 'LOW';
 
     qualified.push({
       organisation_name: name,
@@ -229,18 +249,19 @@ export async function runGlobalOsmDiscovery(options: {
       source_ref: sourceRef,
       website_url: website,
       public_phone: phone,
-      homs_score: score,
-      priority: qualification.priority,
-      recommended_product:
-        outreach.service_route === 'AI_AND_AUTOMATION'
-          ? 'ZenLyft AI & Workflow Automation'
-          : 'ZenLyft HOMS / SaaS Platform',
+      public_email: email,
+      homs_score: dossier.lead_score,
+      priority,
+      recommended_product: dossier.service_match.recommended_solution,
+      dossier,
     });
 
     drafts.push({
       organisation_name: name,
       channel: 'whatsapp',
-      draft_message: finalDraft,
+      draft_message: dossier.whatsapp_draft,
+      subject: dossier.email_subject,
+      email_draft: dossier.email_draft,
     });
 
     if (qualified.length >= boundedLimit) break;
@@ -256,20 +277,27 @@ export async function runGlobalOsmDiscovery(options: {
 
   return {
     city,
-    qualified_leads: sync.leads.map((l, idx) => ({
-      organisation_name: l.organisation_name,
-      location: l.city,
-      category: l.category,
-      homs_score: l.homs_score,
-      recommended_package: l.recommended_product,
-      whatsapp_draft: l.draft_message || drafts[idx]?.draft_message || '',
-      website_url: qualified[idx]?.website_url || null,
-    })),
+    qualified_leads: sync.leads.map((l, idx) => {
+      const dossier = dossierByOrg.get(l.organisation_name);
+      return {
+        organisation_name: l.organisation_name,
+        location: l.city,
+        category: l.category,
+        homs_score: l.homs_score,
+        recommended_package: l.recommended_product,
+        whatsapp_draft: l.draft_message || drafts[idx]?.draft_message || '',
+        email_subject: dossier?.email_subject,
+        email_draft: dossier?.email_draft,
+        website_url: qualified[idx]?.website_url || null,
+        quality_score: dossier?.quality_evaluation.score,
+        industry_class: dossier?.industry_class,
+      };
+    }),
     crm_sync: {
       saved_leads: sync.savedLeadsCount,
       skipped_duplicates: sync.skippedDuplicates,
       created_approvals: sync.queuedApprovalsCount,
-      first_cold_auto_sent: sync.firstColdAutoSentCount,
+      first_cold_auto_sent: 0,
     },
   };
 }

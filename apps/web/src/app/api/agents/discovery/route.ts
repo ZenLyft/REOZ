@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { researchAndPrepareOutreach } from '@/lib/ai/outreach-intelligence';
+import { queueResearchOutreachApprovals } from '@/lib/crm/outreach-dossier-store';
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
@@ -115,9 +117,36 @@ export async function POST(req: NextRequest) {
 
       const website = tags.website || tags['contact:website'] || null;
       const phone = tags.phone || tags['contact:phone'] || tags['contact:mobile'] || null;
+      const email = tags.email || tags['contact:email'] || null;
+      const sourceRef =
+        el.type && el.id
+          ? `https://www.openstreetmap.org/${el.type}/${el.id}`
+          : 'https://www.openstreetmap.org';
 
       const websiteStatus = website ? 'verified' : 'not_found_in_checked_sources';
-      const score = website ? 75 : 92;
+      const initialDossier = await researchAndPrepareOutreach(
+        {
+          company_name: String(name),
+          industry: catInfo.label,
+          category: catInfo.label,
+          location: String(city).trim() || 'Global',
+          website_url: website,
+          website_status: websiteStatus,
+          public_phone: phone,
+          public_email: email,
+          research_sources: [sourceRef, ...(website ? [website] : [])],
+          observed_facts: [
+            website
+              ? `Website identified in OpenStreetMap registry: ${website}`
+              : 'Physical registered location in OpenStreetMap registry with no discoverable website.',
+          ],
+        },
+        { inspectWebsite: Boolean(website) }
+      );
+
+      if (initialDossier.status === 'NOT_A_FIT') continue;
+
+      const score = initialDossier.lead_score;
 
       const { data: createdLead, error } = await supabase
         .from('leads')
@@ -125,13 +154,14 @@ export async function POST(req: NextRequest) {
           organisation_name: name,
           normalised_name: normName,
           organisation_type: catInfo.orgType,
-          category: catInfo.label,
+          category: initialDossier.research_profile.sub_industry || catInfo.label,
           location: String(city).trim() || 'Global',
           website_url: website,
           website_status: websiteStatus,
+          service_interest: initialDossier.service_match.recommended_solution,
           score,
-          pipeline_stage: 'discovered',
-          next_action: 'Generate AI Research Brief & Pitch',
+          pipeline_stage: score >= 60 ? 'qualified' : 'discovered',
+          next_action: `Founder Approval Pending — ${initialDossier.service_match.recommended_solution}`,
           contact_restriction: 'none',
         })
         .select()
@@ -144,7 +174,7 @@ export async function POST(req: NextRequest) {
 
         await supabase.from('sources').insert({
           lead_id: createdLead.id,
-          source_url: 'https://www.openstreetmap.org',
+          source_url: sourceRef,
           source_type: 'openstreetmap_overpass',
           observed_fact: website
             ? `Website identified in OpenStreetMap registry: ${website}`
@@ -159,6 +189,38 @@ export async function POST(req: NextRequest) {
             public_value: phone,
           });
         }
+        if (email) {
+          await supabase.from('contact_channels').insert({
+            lead_id: createdLead.id,
+            channel_type: 'email',
+            public_value: email,
+          });
+        }
+
+        const boundDossier = await researchAndPrepareOutreach(
+          {
+            lead_id: createdLead.id,
+            company_name: String(name),
+            industry: catInfo.label,
+            category: catInfo.label,
+            location: String(city).trim() || 'Global',
+            website_url: website,
+            website_status: websiteStatus,
+            public_phone: phone,
+            public_email: email,
+            research_sources: initialDossier.research_profile.research_sources,
+            observed_facts: initialDossier.research_profile.public_business_observations,
+            business_description: initialDossier.research_profile.business_description,
+            services_offered: initialDossier.research_profile.services_offered,
+          },
+          { inspectWebsite: false }
+        );
+
+        await queueResearchOutreachApprovals({
+          supabase,
+          leadId: createdLead.id,
+          dossier: boundDossier,
+        });
       }
     }
 
