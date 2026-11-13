@@ -531,7 +531,7 @@ export function ApprovalInboxClient({
                   type="button"
                   disabled={processingKey === `approve:${item.id}` || isEditing}
                   onClick={() => handleApprove(item)}
-                  className="rounded-lg bg-[#EA580C] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#C2410C]"
+                  className="rounded-lg bg-[#EA580C] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#C2410C]"
                 >
                   {processingKey === `approve:${item.id}`
                     ? 'Approving...'
@@ -539,6 +539,36 @@ export function ApprovalInboxClient({
                     ? 'Approve WhatsApp'
                     : 'Approve Email'}
                 </button>
+                {item.channel === 'whatsapp' && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={processingKey === `approve:${item.id}` || isEditing}
+                      onClick={async () => {
+                        const link = getWhatsAppDeepLink(item);
+                        const win = window.open(link, '_blank');
+                        await handleApprove(item);
+                        if (win) win.focus();
+                      }}
+                      className="rounded-lg bg-emerald-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-800 flex items-center gap-1 shadow-sm"
+                    >
+                      Approve & Open WhatsApp &rarr;
+                    </button>
+                    {isOpenWaReady && (
+                      <button
+                        type="button"
+                        disabled={processingKey === `send:${item.id}` || isEditing}
+                        onClick={async () => {
+                          await handleApprove(item);
+                          await handleWhatsAppDispatch(item);
+                        }}
+                        className="rounded-lg bg-[#151B2B] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#2B313C]"
+                      >
+                        Approve & Send Silently
+                      </button>
+                    )}
+                  </>
+                )}
               </>
             )}
 

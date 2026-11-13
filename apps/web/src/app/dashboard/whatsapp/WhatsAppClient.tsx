@@ -9,6 +9,7 @@ interface WhatsAppSession {
   phone?: string | null;
   pushName?: string | null;
   qrCode?: string | null;
+  pairingCode?: string | null;
   emergencyStopActive: boolean;
   engine: string;
   openwaBaseUrl: string;
@@ -63,6 +64,16 @@ export function WhatsAppClient() {
 
   useEffect(() => {
     fetchRealData();
+    // Fast polling every 3.5s while gateway is not yet ready or displaying QR code
+    const timer = setInterval(() => {
+      fetch('/api/whatsapp/session')
+        .then((r) => r.json())
+        .then((data) => {
+          setSession(data);
+        })
+        .catch(() => {});
+    }, 3500);
+    return () => clearInterval(timer);
   }, []);
 
   async function fetchRealData() {
@@ -192,26 +203,122 @@ export function WhatsAppClient() {
           </Link>
         </div>
       ) : isGatewayReady ? (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-xl text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
-            <span>OpenWA Gateway CONNECTED ({session?.phone || session?.sessionId})</span>
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3.5 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-2.5 font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
+            <span>WhatsApp Dedicated Gateway CONNECTED (+{session?.phone || '918015929139'})</span>
           </div>
-          <span className="font-mono text-[10px] bg-emerald-100 px-2 py-0.5 rounded">
-            {session?.engine}
-          </span>
-        </div>
-      ) : (
-        <div className="bg-[#ECEFF3] border border-[#D0D5DD] text-[#525A6B] px-4 py-3 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <span className="font-bold text-[#151B2B]">OpenWA Gateway Offline — Instant Web/App Mode Ready:</span>{' '}
-            <span>
-              You can send every approved message in 1 tap via <code className="font-mono text-[#151B2B]">wa.me</code> or start the OpenWA worker for silent dispatch.
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold uppercase">
+              Engine: {session?.engine || 'Baileys'} • 100% Autonomous Ready
             </span>
           </div>
-          <span className="font-mono text-[10px] bg-[#FFFFFF] border border-[#D0D5DD] px-2.5 py-1 rounded text-[#151B2B] shrink-0">
-            STATUS: {session?.status?.toUpperCase() || 'STANDBY'}
-          </span>
+        </div>
+      ) : (
+        <div className="bg-[#FFFFFF] border-2 border-[#FF6B35]/30 p-6 rounded-2xl shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4E7EC] pb-4">
+            <div>
+              <h2 className="text-base font-black text-[#151B2B] flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                Connect Your WhatsApp (+91 80159 29139)
+              </h2>
+              <p className="text-xs text-[#525A6B] mt-0.5">
+                Scan the QR code below or enter the 8-digit pairing code to link your phone for 100% autonomous client messaging.
+              </p>
+            </div>
+            <span className="font-mono text-xs px-2.5 py-1 bg-amber-50 text-amber-900 rounded-lg font-bold border border-amber-200 self-start sm:self-auto">
+              STATUS: {session?.status?.toUpperCase() || 'STANDBY'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            {/* Left: Live QR Code Display */}
+            <div className="flex flex-col items-center justify-center p-6 bg-[#F5F6F8] rounded-xl border border-[#E4E7EC] text-center min-h-[260px]">
+              {session?.qrCode ? (
+                <div className="space-y-3">
+                  <div className="p-2.5 bg-white rounded-xl shadow-md border border-[#D0D5DD] inline-block">
+                    <img
+                      src={session.qrCode}
+                      alt="WhatsApp QR Code"
+                      className="w-56 h-56 object-contain rounded-lg"
+                    />
+                  </div>
+                  <p className="text-xs font-bold text-[#151B2B]">
+                    Point your phone camera at this QR code in WhatsApp
+                  </p>
+                  <p className="text-[11px] text-[#667085]">
+                    Auto-refreshing every 3 seconds • Auto-pairs on scan
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 text-[#FF6B35] flex items-center justify-center mx-auto text-xl font-bold">
+                    📱
+                  </div>
+                  <p className="text-xs font-bold text-[#151B2B]">
+                    WhatsApp Gateway Ready to Pair
+                  </p>
+                  <p className="text-[11px] text-[#525A6B] max-w-xs">
+                    Start the gateway worker on your machine or server to display the live QR code:
+                  </p>
+                  <code className="text-[11px] font-mono bg-white px-3 py-1.5 rounded-lg border border-[#D0D5DD] block text-[#151B2B]">
+                    npm run whatsapp:gateway
+                  </code>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Pairing Code & Step-by-Step Instructions */}
+            <div className="space-y-4">
+              {session?.pairingCode && (
+                <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    Official 8-Digit WhatsApp Pairing Code:
+                  </span>
+                  <div className="text-2xl font-black font-mono tracking-widest text-emerald-900 bg-white px-3 py-2 rounded-lg border border-emerald-200 inline-block shadow-sm">
+                    {session.pairingCode}
+                  </div>
+                  <p className="text-[11px] text-emerald-800">
+                    Enter this code in WhatsApp &gt; Linked Devices &gt; Link with phone number instead.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-[#F5F6F8] p-4 rounded-xl border border-[#E4E7EC] space-y-2.5 text-xs">
+                <p className="font-black text-[#151B2B] text-sm">3 Quick Steps to Link:</p>
+                <div className="flex items-start gap-2.5 text-[#344054]">
+                  <span className="w-5 h-5 rounded-full bg-[#151B2B] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    1
+                  </span>
+                  <span>
+                    Open WhatsApp on your phone (<strong>+91 80159 29139</strong>).
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5 text-[#344054]">
+                  <span className="w-5 h-5 rounded-full bg-[#151B2B] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    2
+                  </span>
+                  <span>
+                    Tap <strong>Settings</strong> (iOS) or <strong>Three dots &gt; Linked Devices</strong> (Android).
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5 text-[#344054]">
+                  <span className="w-5 h-5 rounded-full bg-[#151B2B] text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                    3
+                  </span>
+                  <span>
+                    Tap <strong>Link a Device</strong> and scan the QR code on the left!
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 flex items-center justify-between">
+                <span>
+                  💡 <strong>Instant Fallback:</strong> Every outreach draft can also be dispatched immediately via <code>wa.me</code> deep links below.
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

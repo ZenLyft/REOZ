@@ -8,6 +8,8 @@ node_modules/
 .open-next/
 .wrangler/
 .dev.vars
+tsconfig.tsbuildinfo
+*.tsbuildinfo
 out/
 build/
 dist/
@@ -70,4 +72,6 @@ yarn-error.log*
 
 # External Cloned Microservices & Runtime Data
 external/
+data/
 data/openwa/
+data/whatsapp-auth/

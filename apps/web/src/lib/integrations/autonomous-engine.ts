@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { REGION_HUBS, runGlobalOsmDiscovery } from './global-discovery';
 import { notifyFounder } from './web-push';
+import { OpenWAClient } from './openwa-client';
 
 export interface AutopilotRunSummary {
   status: 'completed' | 'paused' | 'skipped';
@@ -138,6 +139,85 @@ export async function runAutonomousRevenueCycle(options?: {
     regionOrCity: region,
     limit: options?.limit || 6,
   });
+
+  // Autonomous First Cold Dispatch (when Autopilot Level 3 + Gateway Ready)
+  let autoSentCount = 0;
+  if (
+    settings.auto_send_first_cold &&
+    settings.autonomy_level >= 3 &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
+    try {
+      const admin = createAdminClient();
+      const openWa = new OpenWAClient();
+      const sessionInfo = await openWa.getSession();
+
+      if (sessionInfo?.status === 'ready') {
+        const { data: pendingItems } = await admin
+          .from('approvals')
+          .select('id, target_id, recipient, action_type, payload_hash, evidence')
+          .eq('status', 'pending')
+          .eq('action_type', 'send_whatsapp')
+          .order('id', { ascending: false })
+          .limit(options?.limit || 4);
+
+        for (const approval of pendingItems || []) {
+          const cleanDigits = (approval.recipient || '').replace(/\D/g, '');
+          if (!cleanDigits || cleanDigits.length < 8) continue;
+
+          const { data: draftRow } = await admin
+            .from('outreach_drafts')
+            .select('draft, lead_id')
+            .eq('id', approval.target_id)
+            .maybeSingle();
+
+          const text = draftRow?.draft || approval.evidence?.draft_content;
+          if (!text) continue;
+
+          const sendRes = await openWa.sendTextMessage({
+            chatId: `${cleanDigits}@c.us`,
+            text,
+          });
+
+          if (sendRes.success) {
+            const now = new Date().toISOString();
+            await admin
+              .from('approvals')
+              .update({ status: 'sent', decided_at: now })
+              .eq('id', approval.id);
+
+            await admin.from('whatsapp_messages').insert({
+              session_id: 'zenlyft-wa-01',
+              chat_id: `${cleanDigits}@c.us`,
+              sender_number: '918015929139',
+              recipient_number: cleanDigits,
+              direction: 'outbound',
+              body: text,
+              status: 'submitted',
+              external_message_id: sendRes.messageId,
+              approval_id: approval.id,
+              approval_hash: approval.payload_hash,
+              sent_at: now,
+            });
+
+            if (draftRow?.lead_id) {
+              await admin
+                .from('leads')
+                .update({ pipeline_stage: 'contacted', updated_at: now })
+                .eq('id', draftRow.lead_id);
+            }
+
+            autoSentCount++;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Autopilot Auto-Send WhatsApp Error]:', err);
+    }
+  }
+
+  discovery.crm_sync.first_cold_auto_sent = autoSentCount;
 
   let pushed = 0;
   if (discovery.crm_sync.saved_leads > 0 || discovery.crm_sync.first_cold_auto_sent > 0) {

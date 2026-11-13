@@ -22,38 +22,65 @@ export async function GET(_req: NextRequest) {
     // Query live OpenWA server
     const sessionInfo = await client.getSession(config.sessionId);
     let qrCode: string | null = null;
+    let pairingCode: string | null = null;
     let status = sessionInfo?.status || 'disconnected';
+    let activePhone = sessionInfo?.phone || config.businessPhone;
+    let pushName = sessionInfo?.pushName || null;
 
-    if (sessionInfo?.status === 'qr_ready' || sessionInfo?.status === 'initializing') {
-      const qrRes = await client.getQRCode(config.sessionId);
-      qrCode = qrRes.qrCode;
-      if (qrRes.status && qrRes.status !== 'unknown') {
-        status = qrRes.status as any;
+    if (sessionInfo) {
+      if ((sessionInfo as any).pairingCode) {
+        pairingCode = (sessionInfo as any).pairingCode;
+      }
+      if (sessionInfo.qrCode) {
+        qrCode = sessionInfo.qrCode;
+      } else if (sessionInfo.status === 'qr_ready' || sessionInfo.status === 'initializing') {
+        const qrRes = await client.getQRCode(config.sessionId);
+        qrCode = qrRes.qrCode;
+        if (qrRes.status && qrRes.status !== 'unknown') {
+          status = qrRes.status as any;
+        }
+      }
+
+      // Update database record from live session info
+      await supabase.from('whatsapp_sessions').upsert({
+        id: config.sessionId,
+        name: 'ZenLyft Business Acquisition (Dedicated)',
+        status: emergencyStop ? 'emergency_stopped' : status,
+        phone: activePhone,
+        push_name: pushName,
+        qr_code: qrCode,
+        engine: 'baileys',
+        is_active: !emergencyStop && status === 'ready',
+        last_active_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      // Edge / Cloud fallback: Read persistent gateway session directly from Supabase
+      const { data: dbSession } = await supabase
+        .from('whatsapp_sessions')
+        .select('*')
+        .eq('id', config.sessionId)
+        .maybeSingle();
+
+      if (dbSession) {
+        status = dbSession.status || 'disconnected';
+        qrCode = dbSession.qr_code || null;
+        if (dbSession.phone) activePhone = dbSession.phone;
+        if (dbSession.push_name) pushName = dbSession.push_name;
+        if (dbSession.last_error?.startsWith('PAIRING_CODE:')) {
+          pairingCode = dbSession.last_error.replace('PAIRING_CODE:', '').trim();
+        }
       }
     }
-
-    // Update local database record
-    const activePhone = sessionInfo?.phone || config.businessPhone;
-    await supabase.from('whatsapp_sessions').upsert({
-      id: config.sessionId,
-      name: 'ZenLyft Business Acquisition (Dedicated)',
-      status: emergencyStop ? 'emergency_stopped' : status,
-      phone: activePhone,
-      push_name: sessionInfo?.pushName || null,
-      qr_code: qrCode,
-      engine: 'baileys',
-      is_active: !emergencyStop && status === 'ready',
-      last_active_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
 
     return NextResponse.json({
       success: true,
       sessionId: config.sessionId,
       status: emergencyStop ? 'emergency_stopped' : status,
       phone: activePhone,
-      pushName: sessionInfo?.pushName || null,
+      pushName,
       qrCode,
+      pairingCode,
       emergencyStopActive: emergencyStop,
       engine: 'baileys',
       openwaBaseUrl: config.baseUrl,

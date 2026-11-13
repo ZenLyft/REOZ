@@ -129,7 +129,7 @@ export function verifyApprovalRecordIntegrity(params: {
         channel,
         message_content: draft.draft,
         subject: draft.subject ?? null,
-        lead_id: draft.lead_id ?? null,
+        lead_id: String(draft.lead_id || 'unassigned'),
         approval_scope: 'first_contact',
         template_version: 'research-v2',
       };
