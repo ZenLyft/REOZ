@@ -14,7 +14,8 @@
     "ASCENSION_API_URL": "https://zenlyft-ascension.onrender.com",
     "ZOHO_REDIRECT_URI": "https://zenlyft-ascension.onrender.com/api/integrations/zoho/callback",
     "ZOHO_ACCOUNTS_BASE_URL": "https://accounts.zoho.in",
-    "ZOHO_MAIL_API_BASE_URL": "https://mail.zoho.in"
+    "ZOHO_MAIL_API_BASE_URL": "https://mail.zoho.in",
+    "ZOHO_REFRESH_TOKEN_ENCRYPTION_KEY": "e82470a5641c56d577d792d8010a00bc"
   },
   "observability": {
     "enabled": true

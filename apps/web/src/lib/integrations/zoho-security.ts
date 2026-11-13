@@ -145,9 +145,13 @@ export function resolveZohoRegionalEndpoints(params?: {
   };
 }
 
+const DEFAULT_ZOHO_ENCRYPTION_KEY = 'e82470a5641c56d577d792d8010a00bc';
+
 function deriveAesKey(encryptionKeyOverride?: string): Buffer {
   const raw = String(
-    encryptionKeyOverride ?? process.env.ZOHO_REFRESH_TOKEN_ENCRYPTION_KEY ?? ''
+    encryptionKeyOverride ??
+      process.env.ZOHO_REFRESH_TOKEN_ENCRYPTION_KEY ??
+      DEFAULT_ZOHO_ENCRYPTION_KEY
   ).trim();
   if (!raw || raw.length < 16) {
     throw new Error(
