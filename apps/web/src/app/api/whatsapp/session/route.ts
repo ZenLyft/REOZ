@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest) {
     let qrCode: string | null = null;
     let status = sessionInfo?.status || 'disconnected';
 
-    if (!sessionInfo || sessionInfo.status === 'qr_ready' || sessionInfo.status === 'initializing') {
+    if (sessionInfo?.status === 'qr_ready' || sessionInfo?.status === 'initializing') {
       const qrRes = await client.getQRCode(config.sessionId);
       qrCode = qrRes.qrCode;
       if (qrRes.status && qrRes.status !== 'unknown') {

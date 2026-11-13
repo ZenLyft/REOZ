@@ -368,11 +368,16 @@ export class OpenWAClient {
    */
   async getSession(sessionId?: string): Promise<OpenWASessionInfo | null> {
     const sid = sessionId || this.config.sessionId;
+    const isLocal = this.config.baseUrl.includes('localhost') || this.config.baseUrl.includes('127.0.0.1');
+    if (isLocal && (process.env.NODE_ENV === 'production' || process.env.CF_PAGES === '1' || process.env.OPENNEXT_CLOUDFLARE === 'true')) {
+      return null;
+    }
     try {
       const res = await fetch(`${this.config.baseUrl}/sessions/${encodeURIComponent(sid)}`, {
         method: 'GET',
         headers: this.headers,
         cache: 'no-store',
+        signal: AbortSignal.timeout(2000),
       });
 
       if (!res.ok) {
@@ -393,11 +398,16 @@ export class OpenWAClient {
    */
   async getQRCode(sessionId?: string): Promise<{ qrCode: string | null; status: string }> {
     const sid = sessionId || this.config.sessionId;
+    const isLocal = this.config.baseUrl.includes('localhost') || this.config.baseUrl.includes('127.0.0.1');
+    if (isLocal && (process.env.NODE_ENV === 'production' || process.env.CF_PAGES === '1' || process.env.OPENNEXT_CLOUDFLARE === 'true')) {
+      return { qrCode: null, status: 'disconnected' };
+    }
     try {
       const res = await fetch(`${this.config.baseUrl}/sessions/${encodeURIComponent(sid)}/qr`, {
         method: 'GET',
         headers: this.headers,
         cache: 'no-store',
+        signal: AbortSignal.timeout(2000),
       });
 
       if (!res.ok) {
