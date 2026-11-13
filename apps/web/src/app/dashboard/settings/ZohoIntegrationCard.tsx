@@ -316,7 +316,7 @@ export function ZohoIntegrationCard({ initialStatus }: { initialStatus?: ZohoPub
         </div>
       )}
 
-      {!statusData?.configured && (
+      {!statusData?.configured && statusData?.status !== 'CONNECTED' && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
           <strong>Backend Zoho OAuth variables not yet populated:</strong> Set{' '}
           <code>ZOHO_CLIENT_ID</code>, <code>ZOHO_CLIENT_SECRET</code>, <code>ZOHO_REDIRECT_URI</code>, and{' '}

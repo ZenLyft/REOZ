@@ -92,10 +92,8 @@ export async function proxyAscensionZohoIfLocalUnconfigured(params: {
     return { proxied: false };
   }
 
-  const { apiUrl } = getAscensionConfig();
-  if (!apiUrl) {
-    return { proxied: false };
-  }
+  const { apiUrl: configuredUrl } = getAscensionConfig();
+  const apiUrl = configuredUrl || 'https://zenlyft-ascension.onrender.com';
 
   try {
     const res = await fetch(`${apiUrl}${params.path}`, {

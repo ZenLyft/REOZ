@@ -10,6 +10,12 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "vars": {
+    "ASCENSION_API_URL": "https://zenlyft-ascension.onrender.com",
+    "ZOHO_REDIRECT_URI": "https://zenlyft-ascension.onrender.com/api/integrations/zoho/callback",
+    "ZOHO_ACCOUNTS_BASE_URL": "https://accounts.zoho.in",
+    "ZOHO_MAIL_API_BASE_URL": "https://mail.zoho.in"
+  },
   "observability": {
     "enabled": true
   }

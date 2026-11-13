@@ -499,7 +499,7 @@ export async function getZohoPublicStatus(admin: SupabaseClient) {
   }));
 
   return {
-    configured: Boolean(cfg.clientId && cfg.clientSecret),
+    configured: Boolean(cfg.clientId && cfg.clientSecret) || status === 'CONNECTED',
     status,
     dataCenter: conn?.data_center || cfg.dataCenter,
     accountsBaseUrl: conn?.accounts_base_url || cfg.accountsBaseUrl,
