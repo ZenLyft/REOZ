@@ -44,6 +44,53 @@ interface WhatsAppMessage {
   created_at: string;
 }
 
+function playAlertChime(type: 'success' | 'alert' = 'success') {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } else {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch {}
+}
+
+function triggerDesktopNotification(title: string, body: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    try {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    } catch {}
+  } else if (Notification.permission !== 'denied') {
+    Notification.requestPermission().then((p) => {
+      if (p === 'granted') {
+        try {
+          new Notification(title, { body, icon: '/favicon.ico' });
+        } catch {}
+      }
+    });
+  }
+}
+
 export function WhatsAppClient() {
   const [session, setSession] = useState<WhatsAppSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,18 +176,25 @@ export function WhatsAppClient() {
 
       const data = await res.json();
       if (data.success) {
+        playAlertChime('success');
+        triggerDesktopNotification(
+          'REOZ: WhatsApp Message Dispatched!',
+          `Outbound message submitted to ${recipientNumber} via WhatsApp Gateway.`
+        );
         setActionNotice({
           type: 'success',
-          text: `Message submitted via OpenWA! Message ID: ${data.messageId}`,
+          text: `Message submitted to WhatsApp Gateway! Message ID: ${data.messageId || 'queued'}`,
         });
         fetchRealData();
       } else {
+        playAlertChime('alert');
         setActionNotice({
           type: 'error',
           text: data.error || 'OpenWA gateway not connected — use Open WhatsApp Web below.',
         });
       }
     } catch (err: unknown) {
+      playAlertChime('alert');
       setActionNotice({
         type: 'error',
         text: err instanceof Error ? err.message : 'Network error',
@@ -183,14 +237,40 @@ export function WhatsAppClient() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={fetchRealData}
-          disabled={loading}
-          className="self-start md:self-auto px-4 py-2 text-xs font-bold bg-[#151B2B] hover:bg-[#2B313C] text-[#F5F6F8] rounded-xl transition-colors"
-        >
-          {loading ? 'Refreshing...' : 'Refresh Live Data'}
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            type="button"
+            onClick={() => {
+              playAlertChime('success');
+              if (typeof window !== 'undefined' && 'Notification' in window) {
+                Notification.requestPermission().then((perm) => {
+                  if (perm === 'granted') {
+                    triggerDesktopNotification(
+                      '🔔 REOZ Alerts Active!',
+                      'You will hear audio chimes and receive desktop alerts for WhatsApp sends and client replies.'
+                    );
+                  }
+                });
+              }
+              setActionNotice({
+                type: 'success',
+                text: 'Sound & Desktop Alerts Active! Test audio chime played.',
+              });
+            }}
+            className="px-3.5 py-2 text-xs font-bold bg-[#F5F6F8] hover:bg-[#ECEFF3] text-[#151B2B] rounded-xl transition-colors border border-[#D0D5DD] flex items-center gap-1.5 shadow-sm"
+          >
+            <span>🔔</span>
+            <span>Enable Sound & Alerts</span>
+          </button>
+          <button
+            type="button"
+            onClick={fetchRealData}
+            disabled={loading}
+            className="px-4 py-2 text-xs font-bold bg-[#151B2B] hover:bg-[#2B313C] text-[#F5F6F8] rounded-xl transition-colors"
+          >
+            {loading ? 'Refreshing...' : 'Refresh Live Data'}
+          </button>
+        </div>
       </div>
 
       {/* Gateway Connectivity Notice */}

@@ -250,6 +250,14 @@ async function startWhatsAppSocket(forcePairingCode = false) {
                 matched_lead_id: lead?.id || null,
               },
             });
+
+            // Send founder instant alert on their WhatsApp
+            try {
+              const selfJid = `${activePhone}@s.whatsapp.net`;
+              await sock.sendMessage(selfJid, {
+                text: `🔥 *REOZ Inbound Reply Alert!*\n\n• From: *+${senderDigits}* (${lead?.organisation_name || 'Prospect'})\n• Message: "${body}"\n• Action: Lead moved to 'replied' in CRM.\n\nOpen REOZ: https://zenlyft.in/dashboard/whatsapp`,
+              });
+            } catch {}
           } catch (dbErr) {
             console.error('[Inbound DB Save Error]:', dbErr.message);
           }
@@ -324,6 +332,14 @@ function startOutboundQueuePoller() {
           }
 
           console.log(`[Queue Worker] Dispatched successfully! (Message ID: ${sentMsg?.key?.id})\n`);
+
+          // Send founder instant WhatsApp alert on their own phone
+          try {
+            const selfJid = `${activePhone}@s.whatsapp.net`;
+            await sock.sendMessage(selfJid, {
+              text: `🔔 *REOZ Outbound Sent!*\n\n• To: *+${cleanDigits}*\n• Message: "${msg.body?.slice(0, 120)}..."\n• Status: ✅ Delivered\n• Time: ${new Date().toLocaleTimeString('en-IN')}`,
+            });
+          } catch {}
         } catch (sendErr) {
           console.error(`[Queue Worker Error Sending to ${jid}]:`, sendErr.message);
           await supabase
