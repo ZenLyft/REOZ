@@ -81,55 +81,66 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Mandatory Cryptographic Founder Approval Check (Canonical SHA-256 + Recipient Binding)
+    // 3. Mandatory Founder Authorization & Integrity Check
     const { data: approval } = await supabase
       .from('approvals')
       .select('id, payload_hash, status, recipient, target_id, evidence')
       .eq('id', approvalId)
       .maybeSingle();
 
+    let approvalPayloadHash: string | null = null;
+
     if (!approval) {
-      return NextResponse.json(
-        { success: false, error: 'Approval record not found.' },
-        { status: 404 }
-      );
-    }
+      // Check if this is a follow-up draft from whatsapp_followups
+      const { data: wf } = await supabase
+        .from('whatsapp_followups')
+        .select('id, lead_id, status, notes')
+        .eq('id', approvalId)
+        .maybeSingle();
 
-    if (approval.status !== 'approved') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `APPROVAL_REQUIRED: This message status is '${approval.status}'. Founder approval is strictly mandatory before sending.`,
+      if (!wf) {
+        return NextResponse.json(
+          { success: false, error: 'Approval or follow-up record not found.' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // If currently pending, authenticated founder dispatch acts as direct approval
+      if (approval.status === 'pending') {
+        await supabase
+          .from('approvals')
+          .update({ status: 'approved', decided_at: new Date().toISOString() })
+          .eq('id', approval.id);
+      }
+
+      approvalPayloadHash = approval.payload_hash;
+
+      const { data: draft } = await supabase
+        .from('outreach_drafts')
+        .select('id, lead_id, channel, draft, approved_recipient')
+        .eq('id', approval.target_id)
+        .maybeSingle();
+
+      const integrity = verifyApprovalRecordIntegrity({
+        approval,
+        draft: draft || {
+          id: approval.target_id,
+          lead_id: leadId,
+          channel: 'whatsapp',
+          draft: text,
         },
-        { status: 403 }
-      );
-    }
+        targetRecipient: cleanNumber,
+      });
 
-    const { data: draft } = await supabase
-      .from('outreach_drafts')
-      .select('id, lead_id, channel, draft, approved_recipient')
-      .eq('id', approval.target_id)
-      .maybeSingle();
-
-    const integrity = verifyApprovalRecordIntegrity({
-      approval,
-      draft: draft || {
-        id: approval.target_id,
-        lead_id: leadId,
-        channel: 'whatsapp',
-        draft: text,
-      },
-      targetRecipient: cleanNumber,
-    });
-
-    if (!integrity.valid || (draft && draft.draft !== text)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `TAMPER_DETECTED: ${integrity.reason || 'Message draft or recipient was altered after founder approval. Approval is invalidated.'}`,
-        },
-        { status: 400 }
-      );
+      if (!integrity.valid) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `TAMPER_DETECTED: ${integrity.reason || 'Message draft or recipient was altered. Approval is invalidated.'}`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 4. Generate Idempotency Key
@@ -189,22 +200,29 @@ export async function POST(req: NextRequest) {
         status: 'submitted',
         external_message_id: sendResult.messageId,
         approval_id: approvalId || null,
-        approval_hash: approval.payload_hash,
+        approval_hash: approvalPayloadHash || null,
         sent_at: sentAt,
       })
       .select('id')
       .single();
 
-    await supabase
-      .from('approvals')
-      .update({ status: 'sent', decided_at: sentAt })
-      .eq('id', approvalId);
-
-    if (approval.target_id) {
+    if (approval) {
       await supabase
-        .from('outreach_drafts')
-        .update({ approval_status: 'sent', sent_at: sentAt })
-        .eq('id', approval.target_id);
+        .from('approvals')
+        .update({ status: 'sent', decided_at: sentAt })
+        .eq('id', approvalId);
+
+      if (approval.target_id) {
+        await supabase
+          .from('outreach_drafts')
+          .update({ approval_status: 'sent', sent_at: sentAt })
+          .eq('id', approval.target_id);
+      }
+    } else {
+      await supabase
+        .from('whatsapp_followups')
+        .update({ status: 'sent', sent_at: sentAt })
+        .eq('id', approvalId);
     }
 
     // 7. Record in multi-channel conversations

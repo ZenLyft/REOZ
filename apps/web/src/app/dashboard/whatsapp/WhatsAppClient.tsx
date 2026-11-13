@@ -123,6 +123,7 @@ export function WhatsAppClient() {
           leadId: draft.lead_id,
           recipientNumber,
           text: draft.notes,
+          approvalId: draft.id,
         }),
       });
 
