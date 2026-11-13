@@ -97,7 +97,9 @@ export async function approveDraftAction(
     targetRecipient: recipient,
   });
 
-  if (!integrity.valid || draft.draft !== currentContent) {
+  const normalizedDraft = (draft.draft || '').replace(/\r\n/g, '\n').trim();
+  const normalizedCurrent = (currentContent || '').replace(/\r\n/g, '\n').trim();
+  if (!integrity.valid || normalizedDraft !== normalizedCurrent) {
     return {
       success: false,
       error: `Cryptographic Integrity Check Failed: ${integrity.reason || 'Draft content or recipient was modified without re-hashing.'}`,
@@ -508,7 +510,9 @@ async function verifyDispatchAuthorization(params: {
     targetRecipient: params.recipient,
   });
 
-  if (!integrity.valid || draft.draft !== params.currentContent) {
+  const normalizedDraft = (draft.draft || '').replace(/\r\n/g, '\n').trim();
+  const normalizedCurrent = (params.currentContent || '').replace(/\r\n/g, '\n').trim();
+  if (!integrity.valid || normalizedDraft !== normalizedCurrent) {
     return {
       ok: false,
       error: `Integrity Check Failed: ${integrity.reason || 'Content or recipient was modified without re-approval.'}`,

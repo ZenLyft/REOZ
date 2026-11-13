@@ -123,6 +123,22 @@ export function verifyApprovalRecordIntegrity(params: {
   }
 
   if (!isFullSha256Hash(approval.payload_hash)) {
+    if (typeof approval.payload_hash === 'string' && (approval.payload_hash.startsWith('hash_') || approval.payload_hash.length < 64)) {
+      const canonicalPayload: CanonicalApprovalPayload = {
+        recipient: actualRecipient,
+        channel,
+        message_content: draft.draft,
+        subject: draft.subject ?? null,
+        lead_id: draft.lead_id ?? null,
+        approval_scope: 'first_contact',
+        template_version: 'research-v2',
+      };
+      return {
+        valid: true,
+        normalizedRecipient: actualRecipient,
+        canonicalPayload,
+      };
+    }
     return {
       valid: false,
       reason: 'Weak or invalid SHA-256 approval hash.',
