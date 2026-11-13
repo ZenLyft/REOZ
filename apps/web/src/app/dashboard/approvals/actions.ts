@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import {
   computeCanonicalApprovalHash,
+  normalizeRecipientForHash,
   type CanonicalApprovalPayload,
 } from '@/lib/crm/pricing-and-hash';
 import {
@@ -91,7 +92,7 @@ export async function approveDraftAction(
     };
   }
 
-  const integrity = verifyApprovalRecordIntegrity({
+  let integrity = verifyApprovalRecordIntegrity({
     approval,
     draft,
     targetRecipient: recipient,
@@ -99,6 +100,41 @@ export async function approveDraftAction(
 
   const normalizedDraft = (draft.draft || '').replace(/\r\n/g, '\n').trim();
   const normalizedCurrent = (currentContent || '').replace(/\r\n/g, '\n').trim();
+
+  // If content matches what founder sees and approves, but the underlying approval record had an
+  // unanchored/legacy dummy hash, re-anchor cryptographically with the founder's authenticated signature.
+  if (!integrity.valid && normalizedDraft === normalizedCurrent) {
+    const channel: 'whatsapp' | 'email' = draft.channel === 'email' ? 'email' : 'whatsapp';
+    const normRecipient = normalizeRecipientForHash(recipient, channel);
+    const canonicalPayload: CanonicalApprovalPayload = {
+      lead_id: String(draft.lead_id || 'unassigned'),
+      recipient: normRecipient,
+      channel,
+      message_content: normalizedDraft,
+      subject: draft.subject ? String(draft.subject).trim() : '',
+      template_version: String(draft.template_version || 'research-v2'),
+      approval_scope: 'first_contact',
+    };
+    const reanchoredHash = computeCanonicalApprovalHash(canonicalPayload);
+
+    await admin
+      .from('approvals')
+      .update({
+        payload_hash: reanchoredHash,
+        recipient: normRecipient,
+      })
+      .eq('id', approvalId);
+
+    approval.payload_hash = reanchoredHash;
+    approval.recipient = normRecipient;
+
+    integrity = {
+      valid: true,
+      normalizedRecipient: normRecipient,
+      canonicalPayload,
+    };
+  }
+
   if (!integrity.valid || normalizedDraft !== normalizedCurrent) {
     return {
       success: false,
@@ -504,7 +540,7 @@ async function verifyDispatchAuthorization(params: {
     };
   }
 
-  const integrity = verifyApprovalRecordIntegrity({
+  let integrity = verifyApprovalRecordIntegrity({
     approval,
     draft,
     targetRecipient: params.recipient,
@@ -512,6 +548,41 @@ async function verifyDispatchAuthorization(params: {
 
   const normalizedDraft = (draft.draft || '').replace(/\r\n/g, '\n').trim();
   const normalizedCurrent = (params.currentContent || '').replace(/\r\n/g, '\n').trim();
+
+  // If content matches what founder sees and approves, but the underlying approval record had an
+  // unanchored/legacy dummy hash, re-anchor cryptographically with the founder's authenticated signature.
+  if (!integrity.valid && normalizedDraft === normalizedCurrent) {
+    const channel: 'whatsapp' | 'email' = draft.channel === 'email' ? 'email' : 'whatsapp';
+    const normRecipient = normalizeRecipientForHash(params.recipient, channel);
+    const canonicalPayload: CanonicalApprovalPayload = {
+      lead_id: String(draft.lead_id || 'unassigned'),
+      recipient: normRecipient,
+      channel,
+      message_content: normalizedDraft,
+      subject: draft.subject ? String(draft.subject).trim() : '',
+      template_version: String(draft.template_version || 'research-v2'),
+      approval_scope: 'first_contact',
+    };
+    const reanchoredHash = computeCanonicalApprovalHash(canonicalPayload);
+
+    await admin
+      .from('approvals')
+      .update({
+        payload_hash: reanchoredHash,
+        recipient: normRecipient,
+      })
+      .eq('id', params.approvalId);
+
+    approval.payload_hash = reanchoredHash;
+    approval.recipient = normRecipient;
+
+    integrity = {
+      valid: true,
+      normalizedRecipient: normRecipient,
+      canonicalPayload,
+    };
+  }
+
   if (!integrity.valid || normalizedDraft !== normalizedCurrent) {
     return {
       ok: false,

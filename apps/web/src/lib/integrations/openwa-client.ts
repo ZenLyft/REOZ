@@ -334,7 +334,11 @@ export function formatWhatsAppChatId(phoneOrJid: string): string {
     return clean;
   }
   // Strip all non-digits and leading zeros
-  const digits = clean.replace(/\D/g, '').replace(/^0+/, '');
+  let digits = clean.replace(/\D/g, '').replace(/^0+/, '');
+  // Normalize 10-digit Indian numbers to international 91 prefix
+  if (digits.length === 10 && /^[6-9]/.test(digits)) {
+    digits = `91${digits}`;
+  }
   return `${digits}@c.us`;
 }
 

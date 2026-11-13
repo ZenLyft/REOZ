@@ -81,7 +81,7 @@ export function isFullSha256Hash(hash?: string | null): boolean {
 export function normalizeRecipientForHash(recipient: string, channel?: 'whatsapp' | 'email'): string {
   const trimmed = String(recipient || '').trim();
   if (channel === 'whatsapp' || (!trimmed.includes('@') && /\d{7,}/.test(trimmed))) {
-    const digits = trimmed.replace(/\D/g, '');
+    const digits = trimmed.replace(/\D/g, '').replace(/^0+/, '');
     if (digits.length === 10) return `91${digits}`;
     if (digits.length > 0) return digits;
   }

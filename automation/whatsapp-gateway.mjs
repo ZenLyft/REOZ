@@ -265,6 +265,29 @@ async function startWhatsAppSocket(forcePairingCode = false) {
       }
     });
 
+    // Delivery & Read Receipts Tracking
+    sock.ev.on('messages.update', async (updates) => {
+      for (const update of updates) {
+        const msgId = update.key?.id;
+        const statusVal = update.update?.status;
+        if (!msgId || !statusVal) continue;
+
+        let statusText = null;
+        if (statusVal === 3) statusText = 'delivered';
+        else if (statusVal === 4 || statusVal === 5) statusText = 'read';
+
+        if (statusText && supabase) {
+          try {
+            await supabase
+              .from('whatsapp_messages')
+              .update({ status: statusText })
+              .eq('external_message_id', msgId);
+            console.log(`[WhatsApp ACK] Message ${msgId} status updated to: ${statusText}`);
+          } catch {}
+        }
+      }
+    });
+
   } catch (err) {
     console.error('[Baileys Startup Error]:', err);
     currentStatus = 'failed';
@@ -292,7 +315,11 @@ function startOutboundQueuePoller() {
         .limit(4);
 
       for (const msg of queuedMessages || []) {
-        const cleanDigits = (msg.recipient_number || '').replace(/\D/g, '');
+        let cleanDigits = (msg.recipient_number || '').replace(/\D/g, '').replace(/^0+/, '');
+        if (cleanDigits.length === 10 && /^[6-9]/.test(cleanDigits)) {
+          cleanDigits = `91${cleanDigits}`;
+        }
+
         if (!cleanDigits || cleanDigits.length < 8) {
           await supabase
             .from('whatsapp_messages')
@@ -301,7 +328,14 @@ function startOutboundQueuePoller() {
           continue;
         }
 
-        const jid = `${cleanDigits}@s.whatsapp.net`;
+        let jid = `${cleanDigits}@s.whatsapp.net`;
+        try {
+          const [waCheck] = await sock.onWhatsApp(cleanDigits);
+          if (waCheck?.exists && waCheck.jid) {
+            jid = waCheck.jid;
+          }
+        } catch {}
+
         console.log(`\n[Queue Worker] Dispatching queued WhatsApp message to ${jid} (${msg.body?.length} chars)...`);
 
         try {
@@ -468,8 +502,18 @@ const server = http.createServer(async (req, res) => {
         return jsonResponse({ success: false, error: 'chatId and text are required' }, 400);
       }
 
-      const cleanDigits = chatId.replace(/\D/g, '');
-      const jid = `${cleanDigits}@s.whatsapp.net`;
+      let cleanDigits = chatId.replace(/\D/g, '').replace(/^0+/, '');
+      if (cleanDigits.length === 10 && /^[6-9]/.test(cleanDigits)) {
+        cleanDigits = `91${cleanDigits}`;
+      }
+
+      let jid = `${cleanDigits}@s.whatsapp.net`;
+      try {
+        const [waCheck] = await sock.onWhatsApp(cleanDigits);
+        if (waCheck?.exists && waCheck.jid) {
+          jid = waCheck.jid;
+        }
+      } catch {}
 
       console.log(`[Outbound WhatsApp to ${jid}]: Sending text (${text.length} chars)...`);
       const sentMsg = await sock.sendMessage(jid, { text });

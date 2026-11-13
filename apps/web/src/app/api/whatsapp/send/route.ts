@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanNumber = String(recipientNumber).trim().replace(/[^\d]/g, '');
+    let cleanNumber = String(recipientNumber).trim().replace(/[^\d]/g, '').replace(/^0+/, '');
+    if (cleanNumber.length === 10 && /^[6-9]/.test(cleanNumber)) {
+      cleanNumber = `91${cleanNumber}`;
+    }
 
     // 2. Do-Not-Contact & Opt-Out Verification
     if (leadId) {

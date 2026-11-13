@@ -150,13 +150,25 @@ export function WhatsAppClient() {
   }
 
   async function handleApproveFollowup(draft: FollowupDraft) {
-    const recipientNumber = draft.leads?.public_phone?.trim();
-    if (!recipientNumber) {
+    const rawRecipient = draft.leads?.public_phone?.trim();
+    if (!rawRecipient) {
+      playAlertChime('alert');
       setActionNotice({
         type: 'error',
         text: 'No verified phone number recorded for this lead yet. Use "Open WhatsApp" to select a contact manually or update the lead.',
       });
       return;
+    }
+
+    const digits = rawRecipient.replace(/\D/g, '').replace(/^0+/, '');
+    const recipientNumber = digits.length === 10 && /^[6-9]/.test(digits) ? `91${digits}` : digits;
+
+    // Instant user-gesture feedback for iOS Safari / Mobile browsers
+    playAlertChime('success');
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([100, 50, 100]);
+      } catch {}
     }
 
     setIsSending(true);
@@ -177,13 +189,18 @@ export function WhatsAppClient() {
       const data = await res.json();
       if (data.success) {
         playAlertChime('success');
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([150, 75, 150, 75, 250]);
+          } catch {}
+        }
         triggerDesktopNotification(
-          'REOZ: WhatsApp Message Dispatched!',
-          `Outbound message submitted to ${recipientNumber} via WhatsApp Gateway.`
+          '🚀 REOZ: WhatsApp Message Dispatched!',
+          `Outbound message verified and submitted to +${recipientNumber} via WhatsApp Gateway.`
         );
         setActionNotice({
           type: 'success',
-          text: `Message submitted to WhatsApp Gateway! Message ID: ${data.messageId || 'queued'}`,
+          text: `🚀 Message submitted to WhatsApp Gateway for +${recipientNumber}! (Message ID: ${data.messageId || 'queued'})`,
         });
         fetchRealData();
       } else {
