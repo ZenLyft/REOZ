@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 from urllib.parse import quote
+import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -11,6 +12,9 @@ from pydantic import BaseModel, Field
 
 from ascension.backend.core.config import AscensionSettings, get_settings
 from ascension.integrations.zoho.service import ZohoIntegrationError, ZohoMailService
+
+
+logger = logging.getLogger("ascension.zoho.router")
 
 
 def get_zoho_service(settings: AscensionSettings = Depends(get_settings)) -> ZohoMailService:
@@ -116,12 +120,21 @@ async def zoho_callback(
             status_code=200,
         )
     except ZohoIntegrationError as exc:
+        logger.warning("Zoho integration error during OAuth callback: %s", exc)
         if frontend.startswith("http"):
             return RedirectResponse(
                 url=f"{frontend}/dashboard/settings?zoho_error={quote(str(exc)[:180])}",
                 status_code=302,
             )
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected error during Zoho OAuth callback: %s", exc)
+        if frontend.startswith("http"):
+            return RedirectResponse(
+                url=f"{frontend}/dashboard/settings?zoho_error={quote(str(exc)[:180])}",
+                status_code=302,
+            )
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @zoho_router.get("/api/integrations/zoho/accounts", dependencies=[Depends(require_service_auth)])

@@ -499,15 +499,22 @@ class ZohoMailService:
             access_token=str(token_data["access_token"]),
             mail_api_base_url=endpoints.mail_api_base_url,
         )
-        await db.insert(
-            "audit_log",
-            {
-                "actor": "founder",
-                "action": "zoho_oauth_connected",
-                "details": {"dataCenter": endpoints.data_center},
-            },
-            returning=False,
-        )
+        try:
+            await db.insert(
+                "audit_log",
+                {
+                    "actor_type": "user",
+                    "actor_id": "founder",
+                    "action": "zoho.oauth_connected",
+                    "object_type": "zoho_connections",
+                    "object_id": conn.get("id") or "primary",
+                    "result": "success",
+                    "metadata_without_secrets": {"dataCenter": endpoints.data_center},
+                },
+                returning=False,
+            )
+        except Exception as audit_err:
+            logger.warning("Failed to record audit log for Zoho connect: %s", audit_err)
         return {
             "returnTo": return_to,
             "dataCenter": endpoints.data_center,
@@ -750,11 +757,22 @@ class ZohoMailService:
             filters={"id": f"eq.{conn['id']}"},
             returning=False,
         )
-        await db.insert(
-            "audit_log",
-            {"actor": "founder", "action": "zoho_oauth_disconnected", "details": {}},
-            returning=False,
-        )
+        try:
+            await db.insert(
+                "audit_log",
+                {
+                    "actor_type": "user",
+                    "actor_id": "founder",
+                    "action": "zoho.oauth_disconnected",
+                    "object_type": "zoho_connections",
+                    "object_id": conn.get("id") or "primary",
+                    "result": "success",
+                    "metadata_without_secrets": {},
+                },
+                returning=False,
+            )
+        except Exception as audit_err:
+            logger.warning("Failed to record audit log for Zoho disconnect: %s", audit_err)
         return {"ok": True, "status": "DISCONNECTED"}
 
     async def create_or_update_draft(self, payload: dict[str, Any]) -> dict[str, Any]:
