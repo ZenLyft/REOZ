@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       .update(`${cleanNumber}::${text}::${approvalId}`)
       .digest('hex');
 
-    // 5. Submit to OpenWA Gateway
+    // 5. Submit to OpenWA Gateway or Fallback to Durable Supabase Outbound Queue
     const client = new OpenWAClient();
     const chatId = formatWhatsAppChatId(cleanNumber);
 
@@ -160,34 +160,11 @@ export async function POST(req: NextRequest) {
       quotedMessageId,
     });
 
-    if (!sendResult.success) {
-      // Record failed message in database
-      await supabase.from('whatsapp_messages').insert({
-        session_id: config.sessionId,
-        lead_id: leadId || null,
-        chat_id: chatId,
-        sender_number: config.businessPhone,
-        recipient_number: cleanNumber,
-        direction: 'outbound',
-        body: text,
-        status: 'failed',
-        error_reason: sendResult.error,
-        approval_id: approvalId || null,
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: sendResult.error || 'OpenWA message dispatch failed',
-          status: 'failed',
-        },
-        { status: 502 }
-      );
-    }
-
-    // 6. Record successfully submitted message & mark approval dispatched
+    const isDirectSent = Boolean(sendResult?.success);
+    const messageStatus = isDirectSent ? 'submitted' : 'queued';
     const sentAt = new Date().toISOString();
-    const { data: recordedMsg } = await supabase
+
+    const { data: recordedMsg, error: insertErr } = await supabase
       .from('whatsapp_messages')
       .insert({
         session_id: config.sessionId,
@@ -197,14 +174,18 @@ export async function POST(req: NextRequest) {
         recipient_number: cleanNumber,
         direction: 'outbound',
         body: text,
-        status: 'submitted',
-        external_message_id: sendResult.messageId,
+        status: messageStatus,
+        external_message_id: sendResult?.messageId || null,
         approval_id: approvalId || null,
         approval_hash: approvalPayloadHash || null,
-        sent_at: sentAt,
+        sent_at: isDirectSent ? sentAt : null,
       })
       .select('id')
       .single();
+
+    if (insertErr) {
+      return NextResponse.json({ success: false, error: insertErr.message }, { status: 500 });
+    }
 
     if (approval) {
       await supabase

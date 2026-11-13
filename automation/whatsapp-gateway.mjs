@@ -175,6 +175,9 @@ async function startWhatsAppSocket(forcePairingCode = false) {
         });
 
         isStarting = false;
+
+        // Start checking for queued messages from Cloudflare Edge / Web App
+        startOutboundQueuePoller();
       }
     });
 
@@ -260,6 +263,79 @@ async function startWhatsAppSocket(forcePairingCode = false) {
     isStarting = false;
     await syncSessionToSupabase({ status: 'failed', last_error: err.message });
   }
+}
+
+let queuePollerInterval = null;
+function startOutboundQueuePoller() {
+  if (!supabase || queuePollerInterval) return;
+
+  console.log('[Queue Worker] Outbound queue poller activated (polling Supabase every 2s)...');
+
+  queuePollerInterval = setInterval(async () => {
+    if (currentStatus !== 'ready' || !sock) return;
+
+    try {
+      const { data: queuedMessages } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('status', 'queued')
+        .eq('direction', 'outbound')
+        .order('created_at', { ascending: true })
+        .limit(4);
+
+      for (const msg of queuedMessages || []) {
+        const cleanDigits = (msg.recipient_number || '').replace(/\D/g, '');
+        if (!cleanDigits || cleanDigits.length < 8) {
+          await supabase
+            .from('whatsapp_messages')
+            .update({ status: 'failed', error_reason: 'Invalid phone number digits' })
+            .eq('id', msg.id);
+          continue;
+        }
+
+        const jid = `${cleanDigits}@s.whatsapp.net`;
+        console.log(`\n[Queue Worker] Dispatching queued WhatsApp message to ${jid} (${msg.body?.length} chars)...`);
+
+        try {
+          const sentMsg = await sock.sendMessage(jid, { text: msg.body });
+          const now = new Date().toISOString();
+
+          await supabase
+            .from('whatsapp_messages')
+            .update({
+              status: 'submitted',
+              external_message_id: sentMsg?.key?.id || null,
+              sent_at: now,
+            })
+            .eq('id', msg.id);
+
+          if (msg.approval_id) {
+            await supabase
+              .from('approvals')
+              .update({ status: 'sent', decided_at: now })
+              .eq('id', msg.approval_id);
+          }
+
+          if (msg.lead_id) {
+            await supabase
+              .from('leads')
+              .update({ pipeline_stage: 'contacted', updated_at: now })
+              .eq('id', msg.lead_id);
+          }
+
+          console.log(`[Queue Worker] Dispatched successfully! (Message ID: ${sentMsg?.key?.id})\n`);
+        } catch (sendErr) {
+          console.error(`[Queue Worker Error Sending to ${jid}]:`, sendErr.message);
+          await supabase
+            .from('whatsapp_messages')
+            .update({ status: 'failed', error_reason: sendErr.message })
+            .eq('id', msg.id);
+        }
+      }
+    } catch (err) {
+      // Non-fatal polling error
+    }
+  }, 2000);
 }
 
 // REST API Gateway Server (OpenWA compatible)
