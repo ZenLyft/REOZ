@@ -37,11 +37,14 @@ export default async function DashboardPage() {
   let approvalsCount = 0;
   let wonCount = 0;
   let projectsCount = 0;
+  let divisionACount = 0;
+  let divisionBCount = 0;
   let verifiedCashInr = 0;
   let invoicedTotalInr = 0;
   let autonomyLevel = 1;
   let emergencyStopActive = false;
   let activeMarket = 'Global (Worldwide)';
+  let lostDeals: Array<{ organisation_name: string; lost_reason?: string | null; disqualification_reason?: string | null; pipeline_stage: string }> = [];
 
   try {
     let leadsQuery = supabase.from('leads').select('*', { count: 'exact', head: true });
@@ -60,6 +63,9 @@ export default async function DashboardPage() {
       { count: aCount },
       { count: wCount },
       { count: pCount },
+      { count: divACnt },
+      { count: divBCnt },
+      { data: lostRows },
       { data: payments },
       { data: invoices },
       { data: settings },
@@ -71,8 +77,11 @@ export default async function DashboardPage() {
         ? supabase.from('leads').select('*', { count: 'exact', head: true }).is('owner_id', null)
         : Promise.resolve({ count: 0 }),
       supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('leads').select('*', { count: 'exact', head: true }).eq('pipeline_stage', 'won'),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).in('pipeline_stage', ['won', 'paid', 'active_project', 'completed']),
       supabase.from('projects').select('*', { count: 'exact', head: true }),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).or('revenue_division.eq.division_a_digital,category.ilike.%clinic%,category.ilike.%hotel%,category.ilike.%gym%,category.ilike.%restaurant%'),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).or('revenue_division.eq.division_b_institutional,category.ilike.%college%,category.ilike.%hostel%,category.ilike.%education%'),
+      supabase.from('leads').select('organisation_name, lost_reason, disqualification_reason, pipeline_stage').or('pipeline_stage.eq.lost,pipeline_stage.eq.disqualified').limit(4),
       canReadFinances ? supabase.from('payments').select('amount_received_inr') : Promise.resolve({ data: [] }),
       canReadFinances ? supabase.from('invoices').select('amount_inr') : Promise.resolve({ data: [] }),
       supabase
@@ -89,6 +98,9 @@ export default async function DashboardPage() {
     approvalsCount = aCount || 0;
     wonCount = wCount || 0;
     projectsCount = pCount || 0;
+    divisionACount = divACnt || 0;
+    divisionBCount = divBCnt || 0;
+    lostDeals = (lostRows as any[]) || [];
     if (canReadFinances) {
       verifiedCashInr = (payments || []).reduce(
         (sum, row: { amount_received_inr: number | null }) => sum + (row.amount_received_inr || 0),
@@ -325,6 +337,51 @@ export default async function DashboardPage() {
             <span className="font-bold text-[#FF6B35]">Recommended Action: </span>
             <span className="text-[#151B2B]">{cohortKpis.recommended_corrective_action}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Revenue Divisions & Lost Deal Analysis */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3">
+            <h3 className="text-sm font-bold text-[#151B2B]">Revenue Divisions Allocation</h3>
+            <span className="text-xs text-[#525A6B]">70% SME • 30% Institutional Target</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+              <span className="text-[10px] font-bold uppercase text-indigo-700">Division A: Digital</span>
+              <div className="text-2xl font-black text-indigo-950 mt-1">{divisionACount}</div>
+              <span className="text-[11px] text-indigo-800">Clinics, Hotels, Gyms, SMEs</span>
+            </div>
+            <div className="p-3 bg-purple-50 border border-purple-100 rounded-xl">
+              <span className="text-[10px] font-bold uppercase text-purple-700">Division B: Institutional</span>
+              <div className="text-2xl font-black text-purple-950 mt-1">{divisionBCount}</div>
+              <span className="text-[11px] text-purple-800">Colleges, Hostels, HOMS</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3">
+            <h3 className="text-sm font-bold text-[#151B2B]">Lost / Disqualified Feedback</h3>
+            <span className="text-xs font-semibold text-slate-500">Root-cause optimization</span>
+          </div>
+          {lostDeals.length === 0 ? (
+            <div className="text-xs text-slate-500 italic py-3 text-center">
+              No lost or disqualified deals recorded. Zero unaddressed dropouts.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {lostDeals.map((d, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                  <span className="font-semibold text-slate-900 truncate max-w-[180px]">{d.organisation_name}</span>
+                  <span className="text-slate-600 italic text-[11px]">
+                    {d.lost_reason || d.disqualification_reason || d.pipeline_stage}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

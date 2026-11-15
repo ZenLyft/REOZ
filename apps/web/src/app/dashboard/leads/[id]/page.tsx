@@ -1,9 +1,11 @@
 import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { getSessionUserProfile, normalizeUserRole } from '@/lib/security/rbac';
 import { loadLeadDossiersMap } from '@/lib/crm/outreach-dossier-store';
 import { getZohoPublicStatus } from '@/lib/integrations/zoho-store';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { LeadResearchTriggerButton } from './LeadResearchTriggerButton';
+import { CommercialOperationsClient } from './CommercialOperationsClient';
 import {
   LeadConversationTabs,
   type EmailReplySuggestion,
@@ -18,6 +20,11 @@ interface LeadDetailPageProps {
 
 export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const supabase = createClient();
+  const userProfile = await getSessionUserProfile(supabase);
+  if (!userProfile) {
+    redirect('/login');
+  }
+
   const { id } = params;
 
   const { data: lead, error } = await supabase.from('leads').select('*').eq('id', id).single();
@@ -339,6 +346,19 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
         </div>
 
         <div className="space-y-6">
+          <CommercialOperationsClient
+            leadId={id}
+            leadName={lead.organisation_name}
+            category={lead.category}
+            location={lead.location}
+            currentStage={lead.pipeline_stage}
+            revenueDivision={lead.revenue_division || 'division_a_digital'}
+            estimatedValueInr={lead.estimated_value_inr || 0}
+            approvedQuoteInr={lead.approved_quote_inr || 0}
+            grossMarginPercent={lead.gross_margin_percent || 0}
+            currentUserRole={normalizeUserRole(userProfile.role)}
+          />
+
           <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm">
             <h2 className="text-sm font-bold text-[#151B2B]">Verified Contact Routes</h2>
             <div className="mt-3 space-y-2">

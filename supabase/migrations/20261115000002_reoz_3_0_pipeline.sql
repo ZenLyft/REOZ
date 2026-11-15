@@ -79,3 +79,4 @@ CREATE INDEX IF NOT EXISTS idx_leads_pipeline_stage ON public.leads(pipeline_sta
 CREATE INDEX IF NOT EXISTS idx_meetings_lead_id ON public.meetings(lead_id);
 CREATE INDEX IF NOT EXISTS idx_proposals_lead_id ON public.proposals(lead_id);
 CREATE INDEX IF NOT EXISTS idx_onboarding_projects_lead_id ON public.onboarding_projects(lead_id);
+
