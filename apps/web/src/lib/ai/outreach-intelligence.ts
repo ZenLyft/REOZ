@@ -785,13 +785,89 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function getHashInt(str: string): number {
+export function getHashInt(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash);
+}
+
+export function generateFollowUpMessage(options: {
+  companyName: string;
+  location?: string | null;
+  category?: string | null;
+  stage?: string;
+  notes?: string | null;
+}): string {
+  const company = (options.companyName || 'Team').trim();
+  const loc = (options.location || 'Coimbatore, Tamil Nadu').trim();
+  const cat = (options.category || '').toLowerCase();
+  const hash = getHashInt(`${company}::${loc}::followup`);
+
+  const greetings = [
+    `Hello ${company} Team,`,
+    loc.toLowerCase().includes('tamil') || loc.toLowerCase().includes('coimbatore')
+      ? `Vanakkam! Hello ${company} Team,`
+      : `Good day ${company} Team,`,
+    `Hi ${company} Team,`,
+  ];
+  const greeting = greetings[hash % greetings.length];
+
+  let focus = 'streamlining your customer enquiry coordination and digital scheduling';
+  if (
+    cat.includes('health') ||
+    cat.includes('clinic') ||
+    cat.includes('hospital') ||
+    cat.includes('ortho') ||
+    cat.includes('nursing') ||
+    cat.includes('pediatric') ||
+    cat.includes('maternity')
+  ) {
+    const hcOptions = [
+      'simplifying outpatient appointment bookings and patient WhatsApp reminders',
+      'reducing reception front-desk congestion with digital doctor consultation scheduling',
+      'automating patient enquiry coordination and OPD queue tokens',
+    ];
+    focus = hcOptions[hash % hcOptions.length];
+  } else if (
+    cat.includes('hostel') ||
+    cat.includes('college') ||
+    cat.includes('university') ||
+    cat.includes('education')
+  ) {
+    const eduOptions = [
+      'campus student hostel administration and verified digital outpass workflows (HOMS)',
+      'automating warden gate approvals and instant parent confirmation notifications',
+      'streamlining student leave requests and residential campus attendance',
+    ];
+    focus = eduOptions[hash % eduOptions.length];
+  } else if (cat.includes('coach') || cat.includes('ias') || cat.includes('academy')) {
+    const coachOptions = [
+      'counselling enquiry follow-ups and student batch registration tracking',
+      'automating course demo bookings and fee installment reminders on WhatsApp',
+      'organizing aspirant admissions and batch communications without manual spreadsheet errors',
+    ];
+    focus = coachOptions[hash % coachOptions.length];
+  } else if (cat.includes('fitness') || cat.includes('gym')) {
+    focus = 'automating membership renewals and capturing new trial bookings directly on WhatsApp';
+  } else if (
+    cat.includes('cafe') ||
+    cat.includes('hotel') ||
+    cat.includes('bakery') ||
+    cat.includes('restaurant')
+  ) {
+    focus = 'digital menu showcases, direct WhatsApp orders, and Google review growth';
+  }
+
+  const bodies = [
+    `I'm Niresh from ZenLyft in Coimbatore. Following up respectfully on my earlier note regarding ${focus} for ${company}.\n\nI know your team stays busy with daily operations, so I wanted to ask if exploring this is on your roadmap for this month?`,
+    `I'm Niresh from ZenLyft. Just following up briefly to see if ${company} is currently looking into solutions for ${focus}.\n\nWould you be open to a quick 2-minute preview or conversation on WhatsApp this week?`,
+    `I'm Niresh from ZenLyft in Coimbatore. Checking in briefly regarding our digital workflow tools for ${company}—specifically around ${focus}.\n\nWould this be relevant to explore, or should I check back with your team next month?`,
+  ];
+
+  return `${greeting}\n\n${bodies[hash % bodies.length]}\n\nRegards,\nNiresh\nZenLyft`;
 }
 
 function buildIndustrySpecificWhatsappAndEmail(options: {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { generateFollowUpMessage } from '@/lib/ai/outreach-intelligence';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,15 +88,42 @@ export async function GET() {
 
     const phoneMap = new Map((channels || []).map((c) => [c.lead_id, c.public_value]));
 
-    const followupItems = (followupsRaw || []).map((f) => ({
-      ...f,
-      leads: f.leads
-        ? {
-            ...f.leads,
-            public_phone: phoneMap.get(f.lead_id) || null,
-          }
-        : null,
-    }));
+    const followupItems = (followupsRaw || []).map((f) => {
+      let notes = f.notes;
+      const isPlaceholder =
+        !notes ||
+        notes.includes('Generated via groq') ||
+        notes.includes('Follow-Up Coordinator') ||
+        notes.length < 25;
+
+      if (isPlaceholder && f.leads?.organisation_name) {
+        notes = generateFollowUpMessage({
+          companyName: f.leads.organisation_name,
+          location: f.leads.location,
+          category: f.leads.category,
+          stage: f.stage,
+        });
+
+        // Auto-heal row in Supabase
+        supabase
+          .from('whatsapp_followups')
+          .update({ notes })
+          .eq('id', f.id)
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      return {
+        ...f,
+        notes,
+        leads: f.leads
+          ? {
+              ...f.leads,
+              public_phone: phoneMap.get(f.lead_id) || null,
+            }
+          : null,
+      };
+    });
 
     // Merge first-contact items + follow-ups into unified queue
     const allQueueItems = [...firstContactItems, ...followupItems];

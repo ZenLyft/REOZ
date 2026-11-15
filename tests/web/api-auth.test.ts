@@ -97,3 +97,4 @@ describe('Zero-Trust API Security Gate — verifyApiCaller & enforceApiAuth', ()
     expect(blockedResponse?.status).toBe(401);
   });
 });
+
