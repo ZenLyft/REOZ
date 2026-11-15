@@ -105,6 +105,9 @@ export function WhatsAppClient() {
     optOutCount: 0,
   });
   const [isSending, setIsSending] = useState(false);
+  const [isAutonomousActive, setIsAutonomousActive] = useState(false);
+  const [autonomousCountdown, setAutonomousCountdown] = useState<number | null>(null);
+  const [isTestingLine, setIsTestingLine] = useState(false);
   const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   );
@@ -122,6 +125,43 @@ export function WhatsAppClient() {
     }, 3500);
     return () => clearInterval(timer);
   }, []);
+
+  // Autonomous Auto-Pilot loop: spaces out approved messages with 60s humanized pacing
+  useEffect(() => {
+    if (!isAutonomousActive || session?.status !== 'ready' || isSending) {
+      setAutonomousCountdown(null);
+      return;
+    }
+
+    const pendingDraft = followups.find(
+      (f) => f.status === 'awaiting_approval' && f.leads?.public_phone
+    );
+
+    if (!pendingDraft) {
+      setIsAutonomousActive(false);
+      setAutonomousCountdown(null);
+      setActionNotice({
+        type: 'success',
+        text: 'All eligible queued WhatsApp follow-ups have been autonomously dispatched!',
+      });
+      return;
+    }
+
+    let seconds = 45;
+    setAutonomousCountdown(seconds);
+
+    const timer = setInterval(() => {
+      seconds -= 1;
+      setAutonomousCountdown(seconds);
+
+      if (seconds <= 0) {
+        clearInterval(timer);
+        handleApproveFollowup(pendingDraft);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isAutonomousActive, session?.status, followups, isSending]);
 
   async function fetchRealData() {
     setLoading(true);
@@ -221,11 +261,82 @@ export function WhatsAppClient() {
     }
   }
 
-  function getWaMeUrl(draft: FollowupDraft) {
-    const digits = (draft.leads?.public_phone || '').replace(/\D/g, '');
-    const formatted = digits.length === 10 ? `91${digits}` : digits;
-    const encoded = encodeURIComponent(draft.notes || '');
-    return formatted ? `https://wa.me/${formatted}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+  async function handleTestMyPhone() {
+    setIsTestingLine(true);
+    setActionNotice(null);
+    playAlertChime('success');
+
+    try {
+      const res = await fetch('/api/whatsapp/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: session?.phone || '918015929139' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        playAlertChime('success');
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate([150, 75, 150]);
+          } catch {}
+        }
+        triggerDesktopNotification(
+          '🟢 REOZ: Test Message Delivered!',
+          `Verification delivered to your phone (+${data.sentTo}) at ${data.timestamp}. Check your WhatsApp!`
+        );
+        setActionNotice({
+          type: 'success',
+          text: `🟢 Live verification message sent to your WhatsApp (+${data.sentTo}) at ${data.timestamp}! Check your WhatsApp chat now.`,
+        });
+        fetchRealData();
+      } else {
+        playAlertChime('alert');
+        setActionNotice({
+          type: 'error',
+          text: data.error || 'Failed to dispatch test verification message to your line.',
+        });
+      }
+    } catch (err: unknown) {
+      playAlertChime('alert');
+      setActionNotice({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Network error testing WhatsApp line',
+      });
+    } finally {
+      setIsTestingLine(false);
+    }
+  }
+
+  function handleOpenWhatsApp(draft: FollowupDraft) {
+    const rawRecipient = draft.leads?.public_phone?.trim() || '';
+    const digits = rawRecipient.replace(/\D/g, '').replace(/^0+/, '');
+    const cleanNumber = digits.length === 10 && /^[6-9]/.test(digits) ? `91${digits}` : digits;
+    const text = encodeURIComponent(draft.notes || '');
+
+    const isMobile =
+      typeof navigator !== 'undefined' &&
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '');
+
+    let url: string;
+    if (cleanNumber) {
+      url = isMobile
+        ? `https://api.whatsapp.com/send?phone=${cleanNumber}&text=${text}`
+        : `https://web.whatsapp.com/send?phone=${cleanNumber}&text=${text}`;
+    } else {
+      url = isMobile
+        ? `https://api.whatsapp.com/send?text=${text}`
+        : `https://web.whatsapp.com/send?text=${text}`;
+    }
+
+    playAlertChime('success');
+    try {
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = url;
+      }
+    } catch {
+      window.location.href = url;
+    }
   }
 
   const activeFollowup = followups.find((f) => f.id === selectedFollowupId) || followups[0] || null;
@@ -301,15 +412,63 @@ export function WhatsAppClient() {
           </Link>
         </div>
       ) : isGatewayReady ? (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3.5 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-4 rounded-xl text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-2.5 font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
-            <span>WhatsApp Dedicated Gateway CONNECTED (+{session?.phone || '918015929139'})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold uppercase">
-              Engine: {session?.engine || 'Baileys'} • 100% Autonomous Ready
+            <span>WhatsApp Gateway CONNECTED (+{session?.phone || '918015929139'})</span>
+            <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase ml-1">
+              Baileys Engine • Live
             </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Live Line Test Verification Button */}
+            <button
+              type="button"
+              onClick={handleTestMyPhone}
+              disabled={isTestingLine}
+              className="px-3 py-1.5 text-xs font-bold bg-[#FFFFFF] hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-60"
+            >
+              <span>⚡</span>
+              <span>{isTestingLine ? 'Sending to Phone...' : 'Verify My Phone (+91 80159 29139)'}</span>
+            </button>
+
+            {/* Autonomous Auto-Pilot Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextState = !isAutonomousActive;
+                setIsAutonomousActive(nextState);
+                playAlertChime('success');
+                if (nextState) {
+                  triggerDesktopNotification(
+                    '🤖 REOZ: Autonomous Dispatch Activated',
+                    'Queued follow-ups will now be dispatched automatically with 45s humanized pacing.'
+                  );
+                  setActionNotice({
+                    type: 'success',
+                    text: '🤖 Autonomous Auto-Pilot Activated! Next eligible follow-up will be dispatched automatically.',
+                  });
+                } else {
+                  setActionNotice({
+                    type: 'success',
+                    text: 'Autonomous dispatch paused.',
+                  });
+                }
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-xs border ${
+                isAutonomousActive
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 animate-pulse'
+                  : 'bg-[#151B2B] hover:bg-[#2B313C] text-white border-[#151B2B]'
+              }`}
+            >
+              <span>{isAutonomousActive ? '⏸️' : '▶️'}</span>
+              <span>
+                {isAutonomousActive
+                  ? `Autonomous: ACTIVE (${autonomousCountdown !== null ? `${autonomousCountdown}s` : 'Pacing'})`
+                  : 'Start Autonomous System'}
+              </span>
+            </button>
           </div>
         </div>
       ) : (
@@ -587,14 +746,14 @@ export function WhatsAppClient() {
                       {isSending ? 'Sending...' : 'Send via OpenWA'}
                     </button>
                   )}
-                  <a
-                    href={getWaMeUrl(activeFollowup)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 text-xs font-bold text-[#F5F6F8] bg-emerald-700 hover:bg-emerald-800 rounded-xl"
+                  <button
+                    type="button"
+                    onClick={() => handleOpenWhatsApp(activeFollowup)}
+                    className="px-4 py-2 text-xs font-bold text-[#F5F6F8] bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
                   >
-                    Open WhatsApp &rarr;
-                  </a>
+                    <span>💬</span>
+                    <span>Open WhatsApp &rarr;</span>
+                  </button>
                 </div>
               </div>
             </>
@@ -623,8 +782,18 @@ export function WhatsAppClient() {
                       <strong className="uppercase text-[10px] mr-1.5">{m.direction}:</strong>
                       {m.body}
                     </span>
-                    <span className="text-[10px] font-mono text-[#667085] shrink-0">
-                      {m.status}
+                    <span className="text-[10px] font-mono shrink-0 flex items-center gap-1">
+                      {m.status === 'read' ? (
+                        <span className="text-blue-600 font-bold">✓✓ Read</span>
+                      ) : m.status === 'delivered' ? (
+                        <span className="text-emerald-700 font-bold">✓✓ Delivered</span>
+                      ) : m.status === 'submitted' ? (
+                        <span className="text-[#667085]">✓ Sent</span>
+                      ) : m.status === 'failed' ? (
+                        <span className="text-red-600 font-bold">✕ Failed</span>
+                      ) : (
+                        <span className="text-[#667085]">{m.status}</span>
+                      )}
                     </span>
                   </div>
                 ))}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { enforceApiAuth } from '@/lib/security/api-auth';
 import { logAuditEvent } from '@/lib/audit';
 import { researchAndPrepareOutreach } from '@/lib/ai/outreach-intelligence';
 import { queueResearchOutreachApprovals } from '@/lib/crm/outreach-dossier-store';
@@ -7,6 +8,9 @@ import { queueResearchOutreachApprovals } from '@/lib/crm/outreach-dossier-store
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const authBlock = await enforceApiAuth(req);
+  if (authBlock) return authBlock;
+
   try {
     const { agentId, command, payload } = await req.json();
 

@@ -5,8 +5,16 @@ from contextlib import asynccontextmanager
 from typing import Any, TypedDict
 
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+try:
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+except ImportError:
+    AsyncPostgresSaver = None  # type: ignore
+
+try:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+except ImportError:
+    AsyncSqliteSaver = None  # type: ignore
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 
@@ -48,23 +56,26 @@ async def open_checkpointer(database_url: str = "") -> AsyncIterator[Any]:
     """Open a persistent LangGraph checkpointer for Supabase Postgres, SQLite file, or in-memory dev."""
     dsn = (database_url or "").strip()
     if dsn.startswith(("postgresql://", "postgres://")):
-        async with AsyncPostgresSaver.from_conn_string(dsn) as saver:
-            await saver.setup()
-            yield saver
-            return
+        if AsyncPostgresSaver is not None:
+            async with AsyncPostgresSaver.from_conn_string(dsn) as saver:
+                await saver.setup()
+                yield saver
+                return
 
     if dsn.startswith("sqlite:///"):
-        sqlite_path = dsn.removeprefix("sqlite:///") or ":memory:"
-        async with AsyncSqliteSaver.from_conn_string(sqlite_path) as saver:
-            await saver.setup()
-            yield saver
-            return
+        if AsyncSqliteSaver is not None:
+            sqlite_path = dsn.removeprefix("sqlite:///") or ":memory:"
+            async with AsyncSqliteSaver.from_conn_string(sqlite_path) as saver:
+                await saver.setup()
+                yield saver
+                return
 
     if dsn and dsn.endswith((".db", ".sqlite", ".sqlite3")):
-        async with AsyncSqliteSaver.from_conn_string(dsn) as saver:
-            await saver.setup()
-            yield saver
-            return
+        if AsyncSqliteSaver is not None:
+            async with AsyncSqliteSaver.from_conn_string(dsn) as saver:
+                await saver.setup()
+                yield saver
+                return
 
     yield MemorySaver()
 
@@ -117,15 +128,19 @@ class ZenLyftControlPlane:
     async def _node_ingest_and_route(self, state: AscensionWorkflowState) -> AscensionWorkflowState:
         self.kill_switch.assert_clear()
 
+        city = state.get("city") or "Coimbatore"
+        objective = state.get("objective") or "ZenLyft Revenue Acquisition"
+        thread_id = state.get("thread_id") or "default_thread"
+
         task = TaskSpec(
-            description=f"HOMS institutional acquisition pipeline for {state['city']}",
-            business_objective=state["objective"],
+            description=f"HOMS institutional acquisition pipeline for {city}",
+            business_objective=objective,
             assigned_agent="asc-01",
             department=DepartmentId.EXECUTIVE_OFFICE,
-            input_data={"city": state["city"], "limit": state.get("limit", 5)},
+            input_data={"city": city, "limit": state.get("limit", 5)},
             requires_approval=True,
             approval_action_type=SensitiveActionType.EXTERNAL_WHATSAPP_TEMPLATE,
-            idempotency_key=f"wf:{state['thread_id']}",
+            idempotency_key=f"wf:{thread_id}",
         )
         self.router.submit(task)
         self.router.transition(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { enforceApiAuth } from '@/lib/security/api-auth';
 import { researchAndPrepareOutreach } from '@/lib/ai/outreach-intelligence';
 import { queueResearchOutreachApprovals } from '@/lib/crm/outreach-dossier-store';
 
@@ -10,22 +11,46 @@ const OVERPASS_MIRRORS = [
 ];
 
 const LOCATION_COORDS: Record<string, { lat: number; lon: number; radius: number }> = {
-  london: { lat: 51.5074, lon: -0.1278, radius: 15000 },
-  'new york': { lat: 40.7128, lon: -74.006, radius: 15000 },
-  singapore: { lat: 1.3521, lon: 103.8198, radius: 15000 },
-  dubai: { lat: 25.2048, lon: 55.2708, radius: 15000 },
-  toronto: { lat: 43.6532, lon: -79.3832, radius: 15000 },
-  sydney: { lat: -33.8688, lon: 151.2093, radius: 15000 },
   coimbatore: { lat: 11.0168, lon: 76.9558, radius: 15000 },
-  chennai: { lat: 13.0827, lon: 80.2707, radius: 15000 },
-  bengaluru: { lat: 12.9716, lon: 77.5946, radius: 15000 },
-  bangalore: { lat: 12.9716, lon: 77.5946, radius: 15000 },
-  mumbai: { lat: 19.076, lon: 72.8777, radius: 15000 },
+  chennai: { lat: 13.0827, lon: 80.2707, radius: 18000 },
+  bengaluru: { lat: 12.9716, lon: 77.5946, radius: 20000 },
+  bangalore: { lat: 12.9716, lon: 77.5946, radius: 20000 },
+  mumbai: { lat: 19.076, lon: 72.8777, radius: 20000 },
+  pune: { lat: 18.5204, lon: 73.8567, radius: 15000 },
+  hyderabad: { lat: 17.385, lon: 78.4867, radius: 18000 },
+  delhi: { lat: 28.6139, lon: 77.209, radius: 22000 },
+  'new delhi': { lat: 28.6139, lon: 77.209, radius: 22000 },
+  noida: { lat: 28.5355, lon: 77.391, radius: 15000 },
+  gurugram: { lat: 28.4595, lon: 77.0266, radius: 15000 },
+  gurgaon: { lat: 28.4595, lon: 77.0266, radius: 15000 },
+  ahmedabad: { lat: 23.0225, lon: 72.5714, radius: 18000 },
+  surat: { lat: 21.1702, lon: 72.8311, radius: 15000 },
+  kolkata: { lat: 22.5726, lon: 88.3639, radius: 18000 },
+  jaipur: { lat: 26.9124, lon: 75.7873, radius: 15000 },
+  lucknow: { lat: 26.8467, lon: 80.9462, radius: 15000 },
+  kochi: { lat: 9.9312, lon: 76.2673, radius: 14000 },
+  cochin: { lat: 9.9312, lon: 76.2673, radius: 14000 },
+  thiruvananthapuram: { lat: 8.5241, lon: 76.9366, radius: 14000 },
+  trivandrum: { lat: 8.5241, lon: 76.9366, radius: 14000 },
   tiruppur: { lat: 11.1085, lon: 77.3411, radius: 12000 },
   erode: { lat: 11.341, lon: 77.7172, radius: 12000 },
   salem: { lat: 11.6643, lon: 78.146, radius: 12000 },
-  tokyo: { lat: 35.6762, lon: 139.6503, radius: 15000 },
-  berlin: { lat: 52.52, lon: 13.405, radius: 15000 },
+  madurai: { lat: 9.9252, lon: 78.1198, radius: 14000 },
+  tiruchirappalli: { lat: 10.7905, lon: 78.7047, radius: 14000 },
+  trichy: { lat: 10.7905, lon: 78.7047, radius: 14000 },
+  vellore: { lat: 12.9165, lon: 79.1325, radius: 12000 },
+  mysuru: { lat: 12.2958, lon: 76.6394, radius: 14000 },
+  mysore: { lat: 12.2958, lon: 76.6394, radius: 14000 },
+  mangaluru: { lat: 12.9141, lon: 74.856, radius: 14000 },
+  mangalore: { lat: 12.9141, lon: 74.856, radius: 14000 },
+  visakhapatnam: { lat: 17.6868, lon: 83.2185, radius: 15000 },
+  vijayawada: { lat: 16.5062, lon: 80.648, radius: 14000 },
+  bhopal: { lat: 23.2599, lon: 77.4126, radius: 15000 },
+  indore: { lat: 22.7196, lon: 75.8577, radius: 15000 },
+  chandigarh: { lat: 30.7333, lon: 76.7794, radius: 14000 },
+  patna: { lat: 25.5941, lon: 85.1376, radius: 15000 },
+  bhubaneswar: { lat: 20.2961, lon: 85.8245, radius: 15000 },
+  guwahati: { lat: 26.1445, lon: 91.7362, radius: 14000 },
 };
 
 const CATEGORY_TAGS: Record<string, { tag: string; label: string; orgType: 'local_business' | 'institution' }> = {
@@ -42,14 +67,18 @@ const CATEGORY_TAGS: Record<string, { tag: string; label: string; orgType: 'loca
   gym: { tag: 'leisure=fitness_centre', label: 'Fitness / Gym', orgType: 'local_business' },
 };
 
-async function resolveCoords(city: string): Promise<{ lat: number; lon: number; radius: number }> {
+async function resolveCoords(city: string): Promise<{ lat: number; lon: number; radius: number } | null> {
   const key = city.toLowerCase().trim();
   if (LOCATION_COORDS[key]) return LOCATION_COORDS[key];
 
   try {
+    const query = `${encodeURIComponent(city)}, India`;
     const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`,
-      { headers: { 'User-Agent': 'ZenLyft-REOZ/1.0 (+https://zenlyft.in)' } }
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+      {
+        headers: { 'User-Agent': 'ZenLyft-REOZ/2.0 (+https://zenlyft.in; contact@zenlyft.in)' },
+        signal: AbortSignal.timeout(5000),
+      }
     );
     if (geoRes.ok) {
       const geoData = await geoRes.json();
@@ -58,18 +87,32 @@ async function resolveCoords(city: string): Promise<{ lat: number; lon: number; 
       }
     }
   } catch {
-    // Fallback below
+    // Non-fatal geocoding error
   }
 
-  return LOCATION_COORDS.london;
+  return null;
 }
 
 export async function POST(req: NextRequest) {
+  const authBlock = await enforceApiAuth(req);
+  if (authBlock) return authBlock;
+
   try {
-    const { city = 'London', category = 'college', limit = 10 } = await req.json();
+    const { city = 'Coimbatore', category = 'college', limit = 10 } = await req.json();
 
     const catKey = String(category).toLowerCase().trim();
-    const location = await resolveCoords(String(city || 'London'));
+    const location = await resolveCoords(String(city || 'Coimbatore'));
+
+    if (!location) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `GEOLOCATION_FAILED: Could not resolve '${city}' within India. Please provide an Indian city, district, or region.`,
+        },
+        { status: 400 }
+      );
+    }
+
     const catInfo = CATEGORY_TAGS[catKey] || CATEGORY_TAGS.college;
     const boundedLimit = Math.max(1, Math.min(25, Number(limit) || 10));
 

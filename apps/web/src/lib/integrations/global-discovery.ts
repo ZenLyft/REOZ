@@ -29,13 +29,29 @@ const KNOWN_CITY_COORDS: Record<string, { lat: number; lon: number; radius: numb
   toronto: { lat: 43.6532, lon: -79.3832, radius: 15000 },
   sydney: { lat: -33.8688, lon: 151.2093, radius: 15000 },
   coimbatore: { lat: 11.0168, lon: 76.9558, radius: 15000 },
-  chennai: { lat: 13.0827, lon: 80.2707, radius: 15000 },
-  bengaluru: { lat: 12.9716, lon: 77.5946, radius: 15000 },
-  bangalore: { lat: 12.9716, lon: 77.5946, radius: 15000 },
-  mumbai: { lat: 19.076, lon: 72.8777, radius: 15000 },
+  chennai: { lat: 13.0827, lon: 80.2707, radius: 18000 },
+  bengaluru: { lat: 12.9716, lon: 77.5946, radius: 20000 },
+  bangalore: { lat: 12.9716, lon: 77.5946, radius: 20000 },
+  mumbai: { lat: 19.076, lon: 72.8777, radius: 20000 },
+  pune: { lat: 18.5204, lon: 73.8567, radius: 15000 },
+  hyderabad: { lat: 17.385, lon: 78.4867, radius: 18000 },
+  delhi: { lat: 28.6139, lon: 77.209, radius: 22000 },
+  'new delhi': { lat: 28.6139, lon: 77.209, radius: 22000 },
+  noida: { lat: 28.5355, lon: 77.391, radius: 15000 },
+  gurugram: { lat: 28.4595, lon: 77.0266, radius: 15000 },
+  ahmedabad: { lat: 23.0225, lon: 72.5714, radius: 18000 },
+  kolkata: { lat: 22.5726, lon: 88.3639, radius: 18000 },
+  jaipur: { lat: 26.9124, lon: 75.7873, radius: 15000 },
+  lucknow: { lat: 26.8467, lon: 80.9462, radius: 15000 },
+  kochi: { lat: 9.9312, lon: 76.2673, radius: 14000 },
+  madurai: { lat: 9.9252, lon: 78.1198, radius: 14000 },
+  tiruchirappalli: { lat: 10.7905, lon: 78.7047, radius: 14000 },
+  trichy: { lat: 10.7905, lon: 78.7047, radius: 14000 },
   tiruppur: { lat: 11.1085, lon: 77.3411, radius: 12000 },
   erode: { lat: 11.341, lon: 77.7172, radius: 12000 },
   salem: { lat: 11.6643, lon: 78.146, radius: 12000 },
+  mysuru: { lat: 12.2958, lon: 76.6394, radius: 14000 },
+  chandigarh: { lat: 30.7333, lon: 76.7794, radius: 14000 },
   tokyo: { lat: 35.6762, lon: 139.6503, radius: 15000 },
   berlin: { lat: 52.52, lon: 13.405, radius: 15000 },
   amsterdam: { lat: 52.3676, lon: 4.9041, radius: 12000 },
@@ -73,10 +89,11 @@ export async function resolveCityCoordinates(
   if (KNOWN_CITY_COORDS[key]) return KNOWN_CITY_COORDS[key];
 
   try {
+    const query = `${encodeURIComponent(city)}, India`;
     const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`,
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
       {
-        headers: { 'User-Agent': 'ZenLyft-REOZ/1.0 (+https://zenlyft.in)' },
+        headers: { 'User-Agent': 'ZenLyft-REOZ/2.0 (+https://zenlyft.in; contact@zenlyft.in)' },
         signal: AbortSignal.timeout(5000),
       }
     );
@@ -85,14 +102,14 @@ export async function resolveCityCoordinates(
       return { lat: Number(parsed.data[0].lat), lon: Number(parsed.data[0].lon), radius: 15000 };
     }
   } catch {
-    // Fallback below
+    // Non-fatal lookup error, fallback to ZenLyft Coimbatore HQ
   }
 
-  return KNOWN_CITY_COORDS.london;
+  return KNOWN_CITY_COORDS.coimbatore;
 }
 
 export function resolveDiscoveryCity(regionOrCity: string): string {
-  const raw = String(regionOrCity || 'global').trim();
+  const raw = String(regionOrCity || 'tamil_nadu').trim();
   const normalized = raw.toLowerCase();
   const hubs = REGION_HUBS[normalized];
   if (hubs && hubs.length > 0) {
@@ -100,7 +117,7 @@ export function resolveDiscoveryCity(regionOrCity: string): string {
     const hourIdx = Math.floor(Date.now() / (60 * 60 * 1000)) % hubs.length;
     return hubs[hourIdx];
   }
-  return raw || 'London';
+  return raw || 'Coimbatore';
 }
 
 interface OverpassElement {

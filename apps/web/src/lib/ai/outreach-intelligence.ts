@@ -785,6 +785,15 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function getHashInt(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
 function buildIndustrySpecificWhatsappAndEmail(options: {
   profile: ResearchProfile;
   needs: BusinessNeedItem[];
@@ -793,9 +802,18 @@ function buildIndustrySpecificWhatsappAndEmail(options: {
   discoveryMode?: boolean;
 }): { whatsapp: string; emailSubject: string; emailBody: string } {
   const { profile, needs, serviceMatch, industryClass, discoveryMode } = options;
-  const greeting = profile.decision_maker_name
-    ? `Hello ${profile.decision_maker_name},`
-    : `Hello ${profile.company_name} Team,`;
+  const hash = getHashInt(`${profile.company_name}::${profile.location}::${profile.industry}`);
+  const isTN = (profile.location || '').toLowerCase().includes('tamil') ||
+               (profile.location || '').toLowerCase().includes('coimbatore') ||
+               (profile.location || '').toLowerCase().includes('chennai') ||
+               (profile.location || '').toLowerCase().includes('madurai');
+
+  const greetings = [
+    profile.decision_maker_name ? `Hello ${profile.decision_maker_name},` : `Hello ${profile.company_name} Team,`,
+    isTN ? `Vanakkam! Hello ${profile.decision_maker_name || `${profile.company_name} Team`},` : `Good day ${profile.decision_maker_name || `${profile.company_name} Team`},`,
+    profile.decision_maker_name ? `Hi ${profile.decision_maker_name},` : `Hi ${profile.company_name} Team,`,
+  ];
+  const greeting = greetings[hash % greetings.length];
 
   const topNeed = needs[0];
   const playbook =
@@ -807,47 +825,98 @@ function buildIndustrySpecificWhatsappAndEmail(options: {
   let emailSubject = `Exploring Workflow Improvements at ${profile.company_name}`;
   let emailIntro = '';
 
+  const ctas = [
+    'Is streamlining any of those workflows a current focus for your team?',
+    'Would you be open to a brief 2-minute walkthrough on WhatsApp?',
+    'Would a short introductory conversation this week make sense for your team?',
+    'Would you be open to exploring how this could help your operations?',
+  ];
+  const cta = ctas[(hash >> 2) % ctas.length];
+
   if (discoveryMode || profile.research_status === 'INCOMPLETE') {
-    bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name}${profile.location ? ` in ${profile.location}` : ''} and wanted to learn whether streamlining internal operations or digital customer workflows is a current priority for your team.\n\nWould you be open to a brief introductory conversation this week?`;
+    const discoveryHooks = [
+      `I'm Niresh from ZenLyft in Coimbatore.\n\nI came across ${profile.company_name}${profile.location ? ` in ${profile.location}` : ''} and wanted to learn whether streamlining internal operations or digital customer workflows is a current priority for your team.`,
+      `I'm Niresh from ZenLyft.\n\nWhile reviewing regional business practices in ${profile.location || 'India'}, I came across ${profile.company_name}. We build software that simplifies team coordination and customer enquiry management.`,
+      `I'm Niresh from ZenLyft.\n\nI noticed ${profile.company_name}'s presence in ${profile.location || 'India'} and wanted to ask how your team currently handles day-to-day administrative follow-ups and client coordination.`,
+    ];
+    bodyCore = `${discoveryHooks[hash % discoveryHooks.length]}\n\n${cta}`;
     emailSubject = `Introductory Note — Operational Workflows at ${profile.company_name}`;
     emailIntro = `I wanted to reach out respectfully and learn whether ${profile.company_name} is exploring workflow automation or custom digital tooling this quarter. Rather than assuming your current setup, I would appreciate a brief conversation to understand your priorities.`;
   } else {
     switch (industryClass) {
-      case 'HEALTHCARE':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding outpatient appointment management and patient enquiry coordination.\n\nWe build software that helps healthcare clinics simplify appointment scheduling, reception enquiries, and patient reminders without adding staff workload.\n\nIs streamlining any of those workflows a current focus for your team?`;
+      case 'HEALTHCARE': {
+        const hcVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding outpatient appointment management and patient enquiry coordination.\n\nWe build software that helps healthcare clinics simplify appointment scheduling, reception enquiries, and patient reminders without adding staff workload.`,
+          `I'm Niresh from ZenLyft in Coimbatore.\n\nI noticed ${profile.company_name}'s medical services in ${profile.location}. We work with regional clinics to reduce front-desk phone congestion and automate doctor consultation bookings directly on WhatsApp.\n\nOur system helps reception staff manage patient queues and send automated appointment confirmations effortlessly.`,
+          `I'm Niresh from ZenLyft.\n\nWhile reviewing healthcare practices across ${profile.location}, I came across ${profile.company_name}. We develop dedicated clinic management modules covering OPD token coordination, patient intake, and digital follow-up reminders.`,
+        ];
+        bodyCore = `${hcVariants[hash % hcVariants.length]}\n\n${cta}`;
         emailSubject = `Exploring Appointment Workflow Improvements at ${profile.company_name}`;
         emailIntro = `After looking into ${profile.company_name}'s specialist services in ${profile.location}, I wanted to explore whether reducing front-desk scheduling friction and automating patient appointment reminders is a current priority.`;
         break;
-      case 'FITNESS':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding your membership enquiry, trial booking, and renewal workflows.\n\nWe develop dedicated gym management platforms that help fitness clubs capture trial leads, coordinate trainer schedules, and automate renewal reminders.\n\nIs improving any of those member workflows something your club is considering?`;
+      }
+      case 'FITNESS': {
+        const fitVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding your membership enquiry, trial booking, and renewal workflows.\n\nWe develop dedicated gym management platforms that help fitness clubs capture trial leads, coordinate trainer schedules, and automate renewal reminders.`,
+          `I'm Niresh from ZenLyft.\n\nI noticed ${profile.company_name}'s training centre in ${profile.location}. We build fitness management tools that capture trial bookings from social channels and send automated membership renewal alerts on WhatsApp.`,
+        ];
+        bodyCore = `${fitVariants[hash % fitVariants.length]}\n\n${cta}`;
         emailSubject = `Digital Membership Management for ${profile.company_name}`;
         emailIntro = `Noticing ${profile.company_name}'s wellness and training offerings in ${profile.location}, I wanted to ask how your team currently tracks trial session bookings and membership renewal follow-ups.`;
         break;
-      case 'COACHING_ACADEMY':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to understand how your team currently handles student enquiries, course registrations, and batch scheduling.\n\nZenLyft builds focused coaching management systems designed to simplify counselling follow-ups, batch tracking, and student communication.\n\nWould you be open to discussing whether a tailored system could help your academy?`;
+      }
+      case 'COACHING_ACADEMY': {
+        const coachVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to understand how your team currently handles student enquiries, course registrations, and batch scheduling.\n\nZenLyft builds focused coaching management systems designed to simplify counselling follow-ups, batch tracking, and student communication.`,
+          `I'm Niresh from ZenLyft in Coimbatore.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding your student counselling and admission tracking.\n\nWe develop academy portals that organize course registrations, batch notifications, and fee reminders without manual spreadsheet overhead.`,
+          `I'm Niresh from ZenLyft.\n\nWhile reviewing competitive coaching academies in ${profile.location}, I came across ${profile.company_name}. We build dedicated coaching CRM systems that help counsellors follow up on student demo enquiries and coordinate batch schedules.`,
+        ];
+        bodyCore = `${coachVariants[hash % coachVariants.length]}\n\n${cta}`;
         emailSubject = `Student Enquiry & Batch Workflow Solutions for ${profile.company_name}`;
         emailIntro = `I came across ${profile.company_name} in ${profile.location} and wanted to understand how your counsellors and faculty coordinate high-volume aspirant enquiries, course registrations, and batch scheduling.`;
         break;
-      case 'EDUCATION_HOSTEL':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI wanted to connect regarding student hostel administration at ${profile.company_name} in ${profile.location}.\n\nWe develop institutional hostel platforms for Indian campuses—covering digital outpass requests, warden approvals, and timely parent confirmation workflows.\n\nWould you be open to a brief conversation on how your hostel staff currently manage student leave approvals?`;
+      }
+      case 'EDUCATION_HOSTEL': {
+        const hostelVariants = [
+          `I'm Niresh from ZenLyft.\n\nI wanted to connect regarding student hostel administration at ${profile.company_name} in ${profile.location}.\n\nWe develop institutional hostel platforms for Indian campuses—covering digital outpass requests, warden approvals, and timely parent confirmation workflows.`,
+          `I'm Niresh from ZenLyft in Coimbatore.\n\nI came across ${profile.company_name} in ${profile.location}. We build HOMS, a specialized hostel platform that replaces paper leave registers with verified digital outpasses and instant parent WhatsApp notifications.`,
+          `I'm Niresh from ZenLyft.\n\nI wanted to reach out regarding campus residential facilities at ${profile.company_name} in ${profile.location}. We help institutions automate student outpass approvals, hostel attendance logs, and warden administration seamlessly.`,
+        ];
+        bodyCore = `${hostelVariants[hash % hostelVariants.length]}\n\n${cta}`;
         emailSubject = `Student Administration & Hostel Workflows for ${profile.company_name}`;
         emailIntro = `I wanted to connect regarding residential student administration at ${profile.company_name}. We build digital hostel outpass and warden approval workflows designed to reduce paperwork for campus wardens.`;
         break;
-      case 'EDUCATION_INSTITUTION':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding student admissions tracking and campus administration workflows.\n\nWe build institutional education portals and hostel outpass systems tailored to college departments and registrars.\n\nIs simplifying student administration or admissions enquiry follow-ups a priority this semester?`;
+      }
+      case 'EDUCATION_INSTITUTION': {
+        const eduVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to connect regarding student admissions tracking and campus administration workflows.\n\nWe build institutional education portals and hostel outpass systems tailored to college departments and registrars.`,
+          `I'm Niresh from ZenLyft in Coimbatore.\n\nI noticed ${profile.company_name}'s academic programs in ${profile.location}. We help higher education institutions streamline admissions enquiry management and automate departmental approvals.`,
+        ];
+        bodyCore = `${eduVariants[hash % eduVariants.length]}\n\n${cta}`;
         emailSubject = `Student Administration Solutions for ${profile.company_name}`;
         emailIntro = `I came across ${profile.company_name} in ${profile.location} and wanted to explore whether digitizing admission enquiry tracking or student campus administration is a priority for your leadership team.`;
         break;
-      case 'MANUFACTURING':
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to ask how your plant team currently tracks inventory movement, production logs, and internal approvals.\n\nWe build custom operational dashboards and internal workflow modules tailored for Indian manufacturing teams.\n\nWould a quick conversation on where manual reporting takes the most time be useful?`;
+      }
+      case 'MANUFACTURING': {
+        const mfgVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} in ${profile.location} and wanted to ask how your plant team currently tracks inventory movement, production logs, and internal approvals.\n\nWe build custom operational dashboards and internal workflow modules tailored for Indian manufacturing teams.`,
+          `I'm Niresh from ZenLyft.\n\nWhile reviewing industrial operations in ${profile.location}, I came across ${profile.company_name}. We develop operational software that eliminates paper logs on the factory floor and provides real-time production visibility.`,
+        ];
+        bodyCore = `${mfgVariants[hash % mfgVariants.length]}\n\n${cta}`;
         emailSubject = `Exploring Production & Workflow Visibility at ${profile.company_name}`;
         emailIntro = `After learning about ${profile.company_name}'s manufacturing operations in ${profile.location}, I wanted to explore how your team handles shop-floor inventory visibility, maintenance logs, and internal approvals.`;
         break;
-      default:
-        bodyCore = `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} (${profile.location}) and wanted to understand how your team currently handles ${playbook.focusArea}.\n\nWe build ${serviceMatch.recommended_solution.toLowerCase()} tailored to ${profile.industry.toLowerCase()} workflows.\n\nWould you be open to a brief conversation on whether simplifying these workflows could help your team?`;
+      }
+      default: {
+        const genVariants = [
+          `I'm Niresh from ZenLyft.\n\nI came across ${profile.company_name} (${profile.location}) and wanted to understand how your team currently handles ${playbook.focusArea}.\n\nWe build ${serviceMatch.recommended_solution.toLowerCase()} tailored to ${profile.industry.toLowerCase()} workflows.`,
+          `I'm Niresh from ZenLyft in Coimbatore.\n\nI noticed ${profile.company_name}'s business in ${profile.location}. We help growing companies simplify customer coordination and internal task tracking with dedicated software.`,
+        ];
+        bodyCore = `${genVariants[hash % genVariants.length]}\n\n${cta}`;
         emailSubject = `Exploring Workflow Improvements at ${profile.company_name}`;
         emailIntro = `I came across ${profile.company_name} in ${profile.location} and wanted to explore how your team currently manages ${playbook.focusArea}.`;
         break;
+      }
     }
   }
 

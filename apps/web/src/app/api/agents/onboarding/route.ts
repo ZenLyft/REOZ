@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { enforceApiAuth } from '@/lib/security/api-auth';
 import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
+  const authBlock = await enforceApiAuth(req);
+  if (authBlock) return authBlock;
+
   try {
     const {
       lead_id,

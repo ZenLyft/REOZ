@@ -164,6 +164,16 @@ export async function POST(req: NextRequest) {
     });
 
     const isDirectSent = Boolean(sendResult?.success);
+    if (!isDirectSent && sendResult?.error?.toLowerCase().includes('not registered')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: sendResult.error,
+          status: 'not_on_whatsapp',
+        },
+        { status: 400 }
+      );
+    }
     const messageStatus = isDirectSent ? 'submitted' : 'queued';
     const sentAt = new Date().toISOString();
 

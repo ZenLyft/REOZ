@@ -20,19 +20,15 @@ export async function POST(req: NextRequest) {
     const deliveryId = req.headers.get('x-openwa-delivery-id') || '';
 
     const config = getOpenWAConfig();
+    const webhookSecret = (process.env.OPENWA_WEBHOOK_SECRET || config.webhookSecret || 'zenlyft-openwa-secure-secret-2026').trim();
 
-    // 1. Webhook Signature Verification
-    // If webhook secret is configured, verify HMAC signature strictly
-    const isSignatureValid = verifyOpenWASignature(
-      rawBody,
-      signature,
-      config.webhookSecret || 'zenlyft-openwa-secure-secret-2026'
-    );
-
-    // If signature header is provided but invalid, reject with 401
-    if (signature && !isSignatureValid) {
-      console.warn('[OpenWA Webhook] 401 Unauthorized: Invalid HMAC signature');
-      return new NextResponse('Invalid signature', { status: 401 });
+    // 1. Strict Fail-Closed Webhook Signature Verification
+    const isSignatureValid = verifyOpenWASignature(rawBody, signature, webhookSecret);
+    if (webhookSecret || process.env.NODE_ENV === 'production') {
+      if (!isSignatureValid) {
+        console.warn('[OpenWA Webhook] 401 Unauthorized: Invalid or missing HMAC signature');
+        return new NextResponse('Invalid or missing signature', { status: 401 });
+      }
     }
 
     let payload: any = {};

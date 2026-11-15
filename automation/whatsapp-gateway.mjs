@@ -329,12 +329,23 @@ function startOutboundQueuePoller() {
         }
 
         let jid = `${cleanDigits}@s.whatsapp.net`;
+        let isRegistered = false;
         try {
           const [waCheck] = await sock.onWhatsApp(cleanDigits);
           if (waCheck?.exists && waCheck.jid) {
             jid = waCheck.jid;
+            isRegistered = true;
           }
         } catch {}
+
+        if (!isRegistered && cleanDigits !== activePhone) {
+          console.warn(`[Queue Worker] Target +${cleanDigits} is not registered on WhatsApp. Marking failed.`);
+          await supabase
+            .from('whatsapp_messages')
+            .update({ status: 'failed', error_reason: 'Recipient not registered on WhatsApp' })
+            .eq('id', msg.id);
+          continue;
+        }
 
         console.log(`\n[Queue Worker] Dispatching queued WhatsApp message to ${jid} (${msg.body?.length} chars)...`);
 
@@ -508,15 +519,38 @@ const server = http.createServer(async (req, res) => {
       }
 
       let jid = `${cleanDigits}@s.whatsapp.net`;
+      let isRegistered = false;
       try {
         const [waCheck] = await sock.onWhatsApp(cleanDigits);
         if (waCheck?.exists && waCheck.jid) {
           jid = waCheck.jid;
+          isRegistered = true;
         }
       } catch {}
 
+      if (!isRegistered && cleanDigits !== activePhone) {
+        return jsonResponse(
+          {
+            success: false,
+            error: `Target number +${cleanDigits} is not registered on WhatsApp. Outreach blocked to protect account reputation.`,
+            status: 'not_on_whatsapp',
+          },
+          400
+        );
+      }
+
       console.log(`[Outbound WhatsApp to ${jid}]: Sending text (${text.length} chars)...`);
       const sentMsg = await sock.sendMessage(jid, { text });
+
+      // If sent to a prospect, notify the founder's phone immediately
+      if (cleanDigits !== activePhone) {
+        try {
+          const selfJid = `${activePhone}@s.whatsapp.net`;
+          await sock.sendMessage(selfJid, {
+            text: `🔔 *REOZ Outbound Sent!*\n\n• To: *+${cleanDigits}*\n• Message: "${text.slice(0, 140)}..."\n• Status: ✅ Delivered to WhatsApp\n• Time: ${new Date().toLocaleTimeString('en-IN')}`,
+          });
+        } catch {}
+      }
 
       return jsonResponse({
         success: true,

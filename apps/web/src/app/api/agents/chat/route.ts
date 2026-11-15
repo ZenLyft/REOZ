@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { enforceApiAuth } from '@/lib/security/api-auth';
 import {
   ZENLYFT_MASTER_SYSTEM_PROMPT,
   computeSalesKpis,
@@ -13,10 +14,13 @@ function extractTargetCity(message: string): string {
   if (inMatch?.[1]) {
     return inMatch[1].trim();
   }
-  return 'London';
+  return 'Coimbatore';
 }
 
 export async function POST(req: NextRequest) {
+  const authBlock = await enforceApiAuth(req);
+  if (authBlock) return authBlock;
+
   try {
     const { message } = await req.json();
 
