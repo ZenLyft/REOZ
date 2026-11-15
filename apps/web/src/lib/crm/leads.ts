@@ -1,36 +1,126 @@
 import { z } from 'zod';
-import { OrgType, PipelineStage, WebsiteStatus, ConfidenceLevel } from '@/lib/types/database';
+import { OrgType, PipelineStage, RevenueDivision, WebsiteStatus, ConfidenceLevel } from '@/lib/types/database';
 
 export const VALID_PIPELINE_STAGES: readonly PipelineStage[] = [
   'discovered',
   'qualified',
   'contacted',
-  'replied',
+  'responded',
+  'meeting',
+  'requirements_confirmed',
   'proposal',
-  'won',
+  'negotiation',
+  'agreement',
+  'payment_pending',
+  'paid',
+  'onboarding',
+  'active_project',
+  'completed',
   'lost',
+  'disqualified',
   'not_a_fit',
   'do_not_contact',
   'on_hold',
 ] as const;
 
 export const VALID_TRANSITIONS: Record<PipelineStage, readonly PipelineStage[]> = {
-  discovered: ['qualified', 'not_a_fit', 'lost', 'do_not_contact', 'on_hold'],
-  qualified: ['contacted', 'not_a_fit', 'lost', 'do_not_contact', 'on_hold'],
-  contacted: ['replied', 'not_a_fit', 'lost', 'do_not_contact', 'on_hold'],
-  replied: ['proposal', 'not_a_fit', 'lost', 'do_not_contact', 'on_hold'],
-  proposal: ['won', 'lost', 'not_a_fit', 'do_not_contact', 'on_hold'],
-  won: ['on_hold'],
-  lost: ['discovered', 'on_hold'],
+  discovered: ['qualified', 'not_a_fit', 'lost', 'disqualified', 'do_not_contact', 'on_hold'],
+  qualified: ['contacted', 'not_a_fit', 'lost', 'disqualified', 'do_not_contact', 'on_hold'],
+  contacted: ['responded', 'replied', 'meeting', 'not_a_fit', 'lost', 'disqualified', 'do_not_contact', 'on_hold'],
+  responded: ['meeting', 'requirements_confirmed', 'proposal', 'not_a_fit', 'lost', 'disqualified', 'do_not_contact', 'on_hold'],
+  replied: ['meeting', 'requirements_confirmed', 'proposal', 'not_a_fit', 'lost', 'disqualified', 'do_not_contact', 'on_hold'],
+  meeting: ['requirements_confirmed', 'proposal', 'not_a_fit', 'lost', 'disqualified', 'on_hold'],
+  requirements_confirmed: ['proposal', 'not_a_fit', 'lost', 'disqualified', 'on_hold'],
+  proposal: ['negotiation', 'agreement', 'won', 'lost', 'disqualified', 'not_a_fit', 'do_not_contact', 'on_hold'],
+  negotiation: ['agreement', 'proposal', 'lost', 'disqualified', 'on_hold'],
+  agreement: ['payment_pending', 'paid', 'won', 'lost', 'on_hold'],
+  payment_pending: ['paid', 'won', 'lost', 'on_hold'],
+  paid: ['onboarding', 'active_project'],
+  won: ['onboarding', 'active_project', 'on_hold'],
+  onboarding: ['active_project', 'on_hold'],
+  active_project: ['completed', 'on_hold'],
+  completed: ['on_hold'],
+  lost: ['discovered', 'qualified', 'on_hold'],
+  disqualified: ['discovered'],
   not_a_fit: ['discovered'],
   do_not_contact: [], // Terminal restriction
-  on_hold: ['discovered', 'qualified', 'contacted', 'replied', 'proposal', 'lost'],
+  on_hold: ['discovered', 'qualified', 'contacted', 'responded', 'meeting', 'requirements_confirmed', 'proposal', 'negotiation', 'agreement', 'payment_pending', 'paid', 'onboarding', 'active_project'],
 };
 
 export function canTransitionStage(from: PipelineStage, to: PipelineStage): boolean {
   if (from === to) return true;
   const allowed = VALID_TRANSITIONS[from];
   return allowed ? allowed.includes(to) : false;
+}
+
+/**
+ * Classifies lead into Division A (Business Digital Solutions) or Division B (Institutional Technology)
+ */
+export function classifyRevenueDivision(category: string, orgName: string): RevenueDivision {
+  const text = `${category} ${orgName}`.toLowerCase();
+  const institutionalKeywords = [
+    'college',
+    'university',
+    'institute',
+    'hostel',
+    'campus',
+    'school',
+    'academy of higher education',
+    'polytechnic',
+    'educational group',
+    'panchayat',
+  ];
+
+  for (const kw of institutionalKeywords) {
+    if (text.includes(kw)) {
+      return 'division_b_institutional';
+    }
+  }
+
+  return 'division_a_digital';
+}
+
+/**
+ * Calculates delivery cost, gross margin percentage, and discount checks
+ */
+export function calculateGrossMargin(
+  quoteInr: number,
+  estimatedHours: number,
+  hourlyCostInr = 500,
+  infraCostInr = 1000
+): {
+  deliveryCostInr: number;
+  grossMarginInr: number;
+  grossMarginPercent: number;
+  meetsMinimumMargin: boolean;
+} {
+  const deliveryCostInr = Math.round(estimatedHours * hourlyCostInr + infraCostInr);
+  const grossMarginInr = quoteInr - deliveryCostInr;
+  const grossMarginPercent = quoteInr > 0 ? Number(((grossMarginInr / quoteInr) * 100).toFixed(2)) : 0;
+  const meetsMinimumMargin = grossMarginPercent >= 65;
+
+  return {
+    deliveryCostInr,
+    grossMarginInr,
+    grossMarginPercent,
+    meetsMinimumMargin,
+  };
+}
+
+/**
+ * Returns current ISO year and week string format (e.g. '2026-W46')
+ */
+export function getISOWeekString(date = new Date()): string {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
+  }
+  const weekNumber = 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+  return `${target.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
 }
 
 export function normalizeOrgName(name: string): string {

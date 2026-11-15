@@ -1,6 +1,7 @@
 export type UserRole = 'founder' | 'team_member';
 export type ActorType = 'user' | 'agent' | 'system';
 export type OrgType = 'local_business' | 'institution';
+export type RevenueDivision = 'division_a_digital' | 'division_b_institutional';
 
 export type WebsiteStatus =
   | 'not_found_in_checked_sources'
@@ -14,10 +15,21 @@ export type PipelineStage =
   | 'discovered'
   | 'qualified'
   | 'contacted'
+  | 'responded'
   | 'replied'
+  | 'meeting'
+  | 'requirements_confirmed'
   | 'proposal'
+  | 'negotiation'
+  | 'agreement'
+  | 'payment_pending'
+  | 'paid'
   | 'won'
+  | 'onboarding'
+  | 'active_project'
+  | 'completed'
   | 'lost'
+  | 'disqualified'
   | 'not_a_fit'
   | 'do_not_contact'
   | 'on_hold';

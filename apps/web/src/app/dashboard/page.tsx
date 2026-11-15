@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getSessionUserProfile, normalizeUserRole, hasPermission } from '@/lib/security/rbac';
 import type { AuditLogEntry } from '@/lib/types/database';
 import { calculateWeeklyCohortMetrics } from '@/lib/crm/acquisition-targets';
 import Link from 'next/link';
@@ -7,13 +9,31 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getSessionUserProfile(supabase);
+
+  if (!profile) {
+    redirect('/login');
+  }
+
+  if (profile.status === 'suspended') {
+    redirect('/login?error=account_suspended');
+  }
+
+  const role = normalizeUserRole(profile.role);
+
+  // Developers land directly on Developer Workstation
+  if (role === 'DEVELOPER') {
+    redirect('/dashboard/developer');
+  }
+
+  const canReadFinances = hasPermission(profile, 'finance.read');
+  const canReadAllLeads = hasPermission(profile, 'leads.read_all');
+  const isSuperAdmin = role === 'SUPER_ADMIN';
 
   let auditLogs: AuditLogEntry[] = [];
   let discoveredCount = 0;
   let qualifiedCount = 0;
+  let unassignedCount = 0;
   let approvalsCount = 0;
   let wonCount = 0;
   let projectsCount = 0;
@@ -24,10 +44,19 @@ export default async function DashboardPage() {
   let activeMarket = 'Global (Worldwide)';
 
   try {
+    let leadsQuery = supabase.from('leads').select('*', { count: 'exact', head: true });
+    let qualifiedQuery = supabase.from('leads').select('*', { count: 'exact', head: true }).gte('score', 60);
+
+    if (!canReadAllLeads) {
+      leadsQuery = leadsQuery.eq('owner_id', profile.id);
+      qualifiedQuery = qualifiedQuery.eq('owner_id', profile.id);
+    }
+
     const [
       { data: logs },
       { count: dCount },
       { count: qCount },
+      { count: uCount },
       { count: aCount },
       { count: wCount },
       { count: pCount },
@@ -36,13 +65,16 @@ export default async function DashboardPage() {
       { data: settings },
     ] = await Promise.all([
       supabase.from('audit_log').select('*').order('timestamp', { ascending: false }).limit(6),
-      supabase.from('leads').select('*', { count: 'exact', head: true }),
-      supabase.from('leads').select('*', { count: 'exact', head: true }).gte('score', 60),
+      leadsQuery,
+      qualifiedQuery,
+      isSuperAdmin
+        ? supabase.from('leads').select('*', { count: 'exact', head: true }).is('owner_id', null)
+        : Promise.resolve({ count: 0 }),
       supabase.from('approvals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('leads').select('*', { count: 'exact', head: true }).eq('pipeline_stage', 'won'),
       supabase.from('projects').select('*', { count: 'exact', head: true }),
-      supabase.from('payments').select('amount_received_inr'),
-      supabase.from('invoices').select('amount_inr'),
+      canReadFinances ? supabase.from('payments').select('amount_received_inr') : Promise.resolve({ data: [] }),
+      canReadFinances ? supabase.from('invoices').select('amount_inr') : Promise.resolve({ data: [] }),
       supabase
         .from('system_settings')
         .select('autonomy_level, emergency_stop_active, active_market_country')
@@ -53,17 +85,20 @@ export default async function DashboardPage() {
     if (logs) auditLogs = logs as AuditLogEntry[];
     discoveredCount = dCount || 0;
     qualifiedCount = qCount || 0;
+    unassignedCount = uCount || 0;
     approvalsCount = aCount || 0;
     wonCount = wCount || 0;
     projectsCount = pCount || 0;
-    verifiedCashInr = (payments || []).reduce(
-      (sum, row: { amount_received_inr: number | null }) => sum + (row.amount_received_inr || 0),
-      0
-    );
-    invoicedTotalInr = (invoices || []).reduce(
-      (sum, row: { amount_inr: number | null }) => sum + (row.amount_inr || 0),
-      0
-    );
+    if (canReadFinances) {
+      verifiedCashInr = (payments || []).reduce(
+        (sum, row: { amount_received_inr: number | null }) => sum + (row.amount_received_inr || 0),
+        0
+      );
+      invoicedTotalInr = (invoices || []).reduce(
+        (sum, row: { amount_inr: number | null }) => sum + (row.amount_inr || 0),
+        0
+      );
+    }
     if (settings) {
       autonomyLevel = settings.autonomy_level ?? 1;
       emergencyStopActive = Boolean(settings.emergency_stop_active);
@@ -80,44 +115,63 @@ export default async function DashboardPage() {
       {/* Executive Header Card */}
       <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div
-            className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold border mb-2.5 ${
-              emergencyStopActive
-                ? 'bg-red-50 text-red-800 border-red-200'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-            }`}
-          >
+          <div className="flex items-center gap-2 mb-2.5">
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                emergencyStopActive ? 'bg-red-600' : 'bg-emerald-600 animate-pulse'
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                emergencyStopActive
+                  ? 'bg-red-50 text-red-800 border-red-200'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
               }`}
-            />
-            {emergencyStopActive
-              ? 'Emergency Stop Engaged • Outbound Halted'
-              : `Live • Autonomy Level ${autonomyLevel} • ${activeMarket}`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  emergencyStopActive ? 'bg-red-600' : 'bg-emerald-600 animate-pulse'
+                }`}
+              />
+              {emergencyStopActive
+                ? 'Emergency Stop Engaged • Outbound Halted'
+                : `Live • Autonomy Level ${autonomyLevel} • ${activeMarket}`}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300">
+              {profile.role}
+            </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#151B2B]">
-            Welcome back, {user?.email?.split('@')[0] || 'Founder'}
+            Welcome back, {profile.name || profile.email?.split('@')[0]}
           </h1>
           <p className="text-sm text-[#525A6B] mt-1">
-            ZenLyft Global Revenue Operations — Find clients, approve outreach in 1 tap, and track real cash collected.
+            {role === 'SUPER_ADMIN'
+              ? 'ZenLyft Autonomous Revenue Operations — Executive oversight, team dispatch, and cash collection.'
+              : `${profile.department} Operations — Manage assigned prospects, outreach campaigns, and conversions.`}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            href="/dashboard/ascension"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#FF6B35] text-[#F5F6F8] hover:bg-[#E05220] transition shadow-sm"
-          >
-            Find Clients Worldwide
-          </Link>
-          <Link
-            href="/dashboard/approvals"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#151B2B] bg-[#151B2B] text-[#F5F6F8] hover:bg-[#2B313C] transition"
-          >
-            Approvals ({approvalsCount})
-          </Link>
+          {hasPermission(profile, 'campaigns.create') && (
+            <Link
+              href="/dashboard/ascension"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#FF6B35] text-[#F5F6F8] hover:bg-[#E05220] transition shadow-sm"
+            >
+              Find Clients Worldwide
+            </Link>
+          )}
+          {hasPermission(profile, 'campaigns.approve') && (
+            <Link
+              href="/dashboard/approvals"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[#151B2B] bg-[#151B2B] text-[#F5F6F8] hover:bg-[#2B313C] transition"
+            >
+              Approvals ({approvalsCount})
+            </Link>
+          )}
+          {isSuperAdmin && (
+            <Link
+              href="/dashboard/team"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 transition shadow-sm"
+            >
+              Manage Team
+            </Link>
+          )}
         </div>
       </div>
 
@@ -128,13 +182,17 @@ export default async function DashboardPage() {
           className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm hover:border-[#FF6B35] transition block"
         >
           <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
-            Discovered Leads
+            {canReadAllLeads ? 'Discovered Leads' : 'Assigned Leads'}
           </div>
           <div className="text-3xl font-black text-[#151B2B] mt-2 tabular-nums">
             {discoveredCount}
           </div>
           <div className="text-xs text-[#525A6B] mt-1">
-            {qualifiedCount} qualified (score ≥ 60)
+            {isSuperAdmin ? (
+              <span className="text-amber-600 font-semibold">{unassignedCount} unassigned</span>
+            ) : (
+              <span>{qualifiedCount} qualified (score ≥ 60)</span>
+            )}
           </div>
         </Link>
 
@@ -148,7 +206,9 @@ export default async function DashboardPage() {
           <div className="text-3xl font-black text-[#FF6B35] mt-2 tabular-nums">
             {approvalsCount}
           </div>
-          <div className="text-xs text-[#525A6B] mt-1">Ready for 1-tap sign-off</div>
+          <div className="text-xs text-[#525A6B] mt-1">
+            {isSuperAdmin ? 'Ready for 1-tap sign-off' : 'Under founder review'}
+          </div>
         </Link>
 
         <Link
@@ -166,20 +226,34 @@ export default async function DashboardPage() {
           </div>
         </Link>
 
-        <Link
-          href="/dashboard/revenue"
-          className="rounded-2xl border-2 border-[#FF6B35] bg-[#151B2B] p-5 shadow-sm hover:bg-[#2B313C] transition block text-[#F5F6F8]"
-        >
-          <div className="text-[11px] font-bold uppercase tracking-wider text-[#FF8A5B]">
-            Verified Cash Collected
+        {canReadFinances ? (
+          <Link
+            href="/dashboard/revenue"
+            className="rounded-2xl border-2 border-[#FF6B35] bg-[#151B2B] p-5 shadow-sm hover:bg-[#2B313C] transition block text-[#F5F6F8]"
+          >
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#FF8A5B]">
+              Verified Cash Collected
+            </div>
+            <div className="text-3xl font-black text-[#F5F6F8] mt-2 tabular-nums">
+              ₹{verifiedCashInr.toLocaleString('en-IN')}
+            </div>
+            <div className="text-xs text-[#CBD5E1] mt-1">
+              ₹{invoicedTotalInr.toLocaleString('en-IN')} invoiced total
+            </div>
+          </Link>
+        ) : (
+          <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm block">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#667085]">
+              Qualified Pipeline
+            </div>
+            <div className="text-3xl font-black text-indigo-600 mt-2 tabular-nums">
+              {qualifiedCount}
+            </div>
+            <div className="text-xs text-[#525A6B] mt-1">
+              High-intent prospects
+            </div>
           </div>
-          <div className="text-3xl font-black text-[#F5F6F8] mt-2 tabular-nums">
-            ₹{verifiedCashInr.toLocaleString('en-IN')}
-          </div>
-          <div className="text-xs text-[#CBD5E1] mt-1">
-            ₹{invoicedTotalInr.toLocaleString('en-IN')} invoiced total
-          </div>
-        </Link>
+        )}
       </div>
 
       {/* 30-Day Revenue Cohort Velocity */}

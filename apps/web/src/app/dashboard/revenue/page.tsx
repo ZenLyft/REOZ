@@ -1,10 +1,29 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getSessionUserProfile, hasPermission } from '@/lib/security/rbac';
 import { RevenueClient } from './RevenueClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RevenuePage() {
   const supabase = createClient();
+  const profile = await getSessionUserProfile(supabase);
+
+  if (!profile) {
+    redirect('/login');
+  }
+
+  if (!hasPermission(profile, 'finance.read')) {
+    return (
+      <div className="bg-[#FFFFFF] border border-[#E4E7EC] p-8 rounded-2xl text-center max-w-lg mx-auto shadow-sm space-y-3 mt-10">
+        <span className="text-3xl">🔒</span>
+        <h2 className="text-lg font-black text-[#151B2B]">Financial Access Restricted</h2>
+        <p className="text-xs text-[#525A6B]">
+          Your role ({profile.role}) does not have permission to view company financial reports, revenue accounting, or client invoices.
+        </p>
+      </div>
+    );
+  }
 
   const [{ data: invoices }, { data: projects }, { count: qualifiedLeadCount }] = await Promise.all([
     supabase

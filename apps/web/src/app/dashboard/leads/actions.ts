@@ -5,6 +5,8 @@ import { logAuditEvent } from '@/lib/audit';
 import {
   canTransitionStage,
   checkDuplicateLead,
+  classifyRevenueDivision,
+  getISOWeekString,
   extractDomain,
   LeadCreateInput,
   LeadCreateSchema,
@@ -72,6 +74,8 @@ export async function createLeadAction(input: LeadCreateInput) {
       normalised_name: normalisedName,
       organisation_type: data.organisation_type,
       category: data.category,
+      revenue_division: classifyRevenueDivision(data.category, data.organisation_name),
+      cohort_week: getISOWeekString(),
       location: data.location,
       website_url: data.website_url || null,
       website_domain: domain,
@@ -182,6 +186,11 @@ export async function updateLeadStageAction(leadId: string, targetStage: Pipelin
 
   if (targetStage === 'lost' && reason) {
     updatePayload.loss_reason = reason;
+    updatePayload.lost_reason = reason;
+  }
+
+  if (targetStage === 'disqualified' && reason) {
+    updatePayload.disqualification_reason = reason;
   }
 
   if (targetStage === 'do_not_contact') {

@@ -1,5 +1,7 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { getSessionUserProfile, hasPermission } from '@/lib/security/rbac';
 import { getAscensionConfig } from '@/lib/integrations/ascension-client';
 import { listActivePushSubscriptions, resolveVapidConfig } from '@/lib/integrations/web-push';
 import { getZohoPublicStatus } from '@/lib/integrations/zoho-store';
@@ -10,6 +12,24 @@ export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const supabase = createClient();
+  const profile = await getSessionUserProfile(supabase);
+
+  if (!profile) {
+    redirect('/login');
+  }
+
+  if (!hasPermission(profile, 'system.settings')) {
+    return (
+      <div className="bg-[#FFFFFF] border border-[#E4E7EC] p-8 rounded-2xl text-center max-w-lg mx-auto shadow-sm space-y-3 mt-10">
+        <span className="text-3xl">🔒</span>
+        <h2 className="text-lg font-black text-[#151B2B]">Settings Access Restricted</h2>
+        <p className="text-xs text-[#525A6B]">
+          Admin settings, integration keys, and autonomy thresholds are restricted to SUPER_ADMIN.
+        </p>
+      </div>
+    );
+  }
+
   const admin = createAdminClient();
 
   const [{ data: settings }, { data: flagFact }, subscriptions, vapid, zohoStatus] = await Promise.all([

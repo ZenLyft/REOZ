@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   canTransitionStage,
+  classifyRevenueDivision,
+  calculateGrossMargin,
+  getISOWeekString,
   normalizeOrgName,
   extractDomain,
   normalizePhone,
@@ -9,27 +12,68 @@ import {
 } from '@/lib/crm/leads';
 import { parseCsvContent, validateAndProcessCsv } from '@/lib/crm/csv-importer';
 
-describe('CRM Core: Pipeline Transitions', () => {
-  it('allows valid forward transitions', () => {
+describe('CRM Core: REOZ 3.0 Linear Deal Pipeline', () => {
+  it('allows complete 14-stage progression from discovery to project completion', () => {
     expect(canTransitionStage('discovered', 'qualified')).toBe(true);
     expect(canTransitionStage('qualified', 'contacted')).toBe(true);
-    expect(canTransitionStage('contacted', 'replied')).toBe(true);
-    expect(canTransitionStage('replied', 'proposal')).toBe(true);
-    expect(canTransitionStage('proposal', 'won')).toBe(true);
+    expect(canTransitionStage('contacted', 'responded')).toBe(true);
+    expect(canTransitionStage('responded', 'meeting')).toBe(true);
+    expect(canTransitionStage('meeting', 'requirements_confirmed')).toBe(true);
+    expect(canTransitionStage('requirements_confirmed', 'proposal')).toBe(true);
+    expect(canTransitionStage('proposal', 'negotiation')).toBe(true);
+    expect(canTransitionStage('negotiation', 'agreement')).toBe(true);
+    expect(canTransitionStage('agreement', 'payment_pending')).toBe(true);
+    expect(canTransitionStage('payment_pending', 'paid')).toBe(true);
+    expect(canTransitionStage('paid', 'onboarding')).toBe(true);
+    expect(canTransitionStage('onboarding', 'active_project')).toBe(true);
+    expect(canTransitionStage('active_project', 'completed')).toBe(true);
   });
 
-  it('allows jumping to terminal or hold states', () => {
-    expect(canTransitionStage('discovered', 'not_a_fit')).toBe(true);
-    expect(canTransitionStage('contacted', 'do_not_contact')).toBe(true);
+  it('allows marking opportunity as lost or disqualified from pre-paid stages', () => {
+    expect(canTransitionStage('discovered', 'disqualified')).toBe(true);
+    expect(canTransitionStage('contacted', 'lost')).toBe(true);
+    expect(canTransitionStage('meeting', 'lost')).toBe(true);
     expect(canTransitionStage('proposal', 'lost')).toBe(true);
-    expect(canTransitionStage('qualified', 'on_hold')).toBe(true);
+    expect(canTransitionStage('negotiation', 'lost')).toBe(true);
   });
 
-  it('rejects invalid transitions', () => {
-    // Cannot skip straight from discovered to won
-    expect(canTransitionStage('discovered', 'won')).toBe(false);
-    // Cannot jump from do_not_contact to contacted (strict terminal protection)
+  it('strictly forbids skipping straight to paid or agreement without required verification stages', () => {
+    expect(canTransitionStage('discovered', 'paid')).toBe(false);
+    expect(canTransitionStage('contacted', 'paid')).toBe(false);
+    expect(canTransitionStage('proposal', 'paid')).toBe(false);
     expect(canTransitionStage('do_not_contact', 'contacted')).toBe(false);
+  });
+});
+
+describe('CRM Core: Division A & Division B Segregation & Unit Economics', () => {
+  it('correctly classifies Division A (SME Digital Solutions) vs Division B (Institutional)', () => {
+    expect(classifyRevenueDivision('Clinic / Healthcare', 'Aravind Eye Hospital')).toBe('division_a_digital');
+    expect(classifyRevenueDivision('Gym & Fitness', 'Cult Fitness Centre')).toBe('division_a_digital');
+    expect(classifyRevenueDivision('Restaurant', 'Annapoorna Hotel')).toBe('division_a_digital');
+
+    expect(classifyRevenueDivision('College Hostels', 'Sri Krishna Arts & Science College Hostels')).toBe('division_b_institutional');
+    expect(classifyRevenueDivision('Higher Education', 'Karpagam Academy of Higher Education')).toBe('division_b_institutional');
+    expect(classifyRevenueDivision('University', 'Anna University Regional Campus')).toBe('division_b_institutional');
+  });
+
+  it('calculates gross margin and enforces 65% minimum threshold', () => {
+    // ₹17,999 website with booking package, 8 hours dev @ ₹500/hr + ₹1000 infra = ₹5,000 cost
+    const margin1 = calculateGrossMargin(17999, 8, 500, 1000);
+    expect(margin1.deliveryCostInr).toBe(5000);
+    expect(margin1.grossMarginInr).toBe(12999);
+    expect(margin1.grossMarginPercent).toBe(72.22);
+    expect(margin1.meetsMinimumMargin).toBe(true);
+
+    // Highly discounted or unprofitable project with low margin
+    const marginLow = calculateGrossMargin(5000, 10, 500, 1000);
+    expect(marginLow.deliveryCostInr).toBe(6000);
+    expect(marginLow.grossMarginPercent).toBe(-20);
+    expect(marginLow.meetsMinimumMargin).toBe(false);
+  });
+
+  it('generates consistent ISO week string format for weekly cohorts', () => {
+    const week = getISOWeekString(new Date('2026-11-15'));
+    expect(week).toMatch(/^2026-W\d{2}$/);
   });
 });
 

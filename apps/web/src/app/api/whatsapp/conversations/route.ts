@@ -89,6 +89,7 @@ export async function GET() {
     const phoneMap = new Map((channels || []).map((c) => [c.lead_id, c.public_value]));
 
     const followupItems = (followupsRaw || []).map((f) => {
+      const leadData: any = Array.isArray(f.leads) ? f.leads[0] : f.leads;
       let notes = f.notes;
       const isPlaceholder =
         !notes ||
@@ -96,29 +97,31 @@ export async function GET() {
         notes.includes('Follow-Up Coordinator') ||
         notes.length < 25;
 
-      if (isPlaceholder && f.leads?.organisation_name) {
+      if (isPlaceholder && leadData?.organisation_name) {
         notes = generateFollowUpMessage({
-          companyName: f.leads.organisation_name,
-          location: f.leads.location,
-          category: f.leads.category,
+          companyName: leadData.organisation_name,
+          location: leadData.location,
+          category: leadData.category,
           stage: f.stage,
         });
 
-        // Auto-heal row in Supabase
-        supabase
+        // Auto-heal row in Supabase asynchronously
+        void supabase
           .from('whatsapp_followups')
           .update({ notes })
           .eq('id', f.id)
-          .then(() => {})
-          .catch(() => {});
+          .then(
+            () => {},
+            () => {}
+          );
       }
 
       return {
         ...f,
         notes,
-        leads: f.leads
+        leads: leadData
           ? {
-              ...f.leads,
+              ...leadData,
               public_phone: phoneMap.get(f.lead_id) || null,
             }
           : null,
