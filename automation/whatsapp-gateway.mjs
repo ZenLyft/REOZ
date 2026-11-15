@@ -546,10 +546,14 @@ const server = http.createServer(async (req, res) => {
       if (cleanDigits !== activePhone) {
         try {
           const selfJid = `${activePhone}@s.whatsapp.net`;
+          console.log(`[Founder Alert]: Sending dispatch notification to ${selfJid}...`);
           await sock.sendMessage(selfJid, {
-            text: `🔔 *REOZ Outbound Sent!*\n\n• To: *+${cleanDigits}*\n• Message: "${text.slice(0, 140)}..."\n• Status: ✅ Delivered to WhatsApp\n• Time: ${new Date().toLocaleTimeString('en-IN')}`,
+            text: `🔔 *REOZ Outbound Sent!*\n\n• To: *+${cleanDigits}*\n• Message: "${text.slice(0, 140)}..."\n• Status: ✅ Delivered to WhatsApp\n• Time: ${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
           });
-        } catch {}
+          console.log(`[Founder Alert]: Dispatched successfully to +${activePhone}!`);
+        } catch (alertErr) {
+          console.error('[Founder Alert Error]:', alertErr.message);
+        }
       }
 
       return jsonResponse({

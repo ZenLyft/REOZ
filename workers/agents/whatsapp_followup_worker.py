@@ -216,7 +216,7 @@ async def run_followup_cycle() -> dict:
                 "stage": next_stage,
                 "status": "awaiting_approval",
                 "scheduled_for": scheduled_time.isoformat(),
-                "notes": f"Generated via {provider} by Agent 10 Follow-Up Coordinator",
+                "notes": draft_text,
             },
         )
         queued_count += 1

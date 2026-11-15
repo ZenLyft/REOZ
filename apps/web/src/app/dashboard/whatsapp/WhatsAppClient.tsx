@@ -247,7 +247,7 @@ export function WhatsAppClient() {
         playAlertChime('alert');
         setActionNotice({
           type: 'error',
-          text: data.error || 'OpenWA gateway not connected — use Open WhatsApp Web below.',
+          text: data.error || 'WhatsApp gateway not connected — use Open WhatsApp Web below.',
         });
       }
     } catch (err: unknown) {
@@ -743,7 +743,7 @@ export function WhatsAppClient() {
                       disabled={isSending}
                       className="px-4 py-2 text-xs font-bold text-[#F5F6F8] bg-[#151B2B] hover:bg-[#2B313C] rounded-xl disabled:opacity-50"
                     >
-                      {isSending ? 'Sending...' : 'Send via OpenWA'}
+                      {isSending ? 'Sending...' : 'Send via WhatsApp'}
                     </button>
                   )}
                   <button

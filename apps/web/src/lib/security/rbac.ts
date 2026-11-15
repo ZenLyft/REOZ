@@ -7,20 +7,25 @@
 
 export type UserRole =
   | 'SUPER_ADMIN'
-  | 'MARKETING'
+  | 'MARKETING_LEAD'
+  | 'MARKETING_EXECUTIVE'
+  | 'DEVELOPMENT_LEAD'
+  | 'SENIOR_DEVELOPER'
   | 'DEVELOPER'
   | 'SALES_EXECUTIVE'
   | 'founder' // legacy alias for SUPER_ADMIN
+  | 'MARKETING' // legacy alias
   | 'team_member'; // legacy alias for MARKETING
 
 export type Department =
-  | 'executive'
   | 'marketing'
+  | 'development'
+  | 'executive'
   | 'engineering'
   | 'sales'
   | 'operations';
 
-export type UserStatus = 'active' | 'suspended' | 'deactivated';
+export type UserStatus = 'active' | 'suspended' | 'deactivated' | 'invitation_pending';
 
 export type Permission =
   | 'users.create'
@@ -50,12 +55,18 @@ export interface UserProfile {
   user_id: string;
   name: string;
   email: string;
+  username?: string | null;
+  employee_id?: string | null;
+  job_title?: string | null;
   role: UserRole;
   department: Department;
   status: UserStatus;
   permissions: Permission[];
   invited_by?: string | null;
   suspended_at?: string | null;
+  deactivated_at?: string | null;
+  last_login_at?: string | null;
+  failed_login_attempts?: number;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +99,19 @@ export const ALL_PERMISSIONS: Permission[] = [
 export const ROLE_DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS,
   founder: ALL_PERMISSIONS,
+  MARKETING_LEAD: [
+    'leads.read_assigned',
+    'leads.update_assigned',
+    'campaigns.create',
+    'campaigns.submit',
+    'analytics.read',
+  ],
+  MARKETING_EXECUTIVE: [
+    'leads.read_assigned',
+    'leads.update_assigned',
+    'campaigns.create',
+    'campaigns.submit',
+  ],
   MARKETING: [
     'leads.read_assigned',
     'leads.update_assigned',
@@ -99,6 +123,14 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'leads.update_assigned',
     'campaigns.create',
     'campaigns.submit',
+  ],
+  DEVELOPMENT_LEAD: [
+    'development.read_assigned',
+    'development.update_assigned',
+  ],
+  SENIOR_DEVELOPER: [
+    'development.read_assigned',
+    'development.update_assigned',
   ],
   DEVELOPER: [
     'development.read_assigned',
@@ -126,16 +158,20 @@ export const SUPER_ADMIN_ONLY_PERMISSIONS: Permission[] = [
 ];
 
 /**
- * Normalizes legacy role strings to canonical uppercase format
+ * Normalizes role strings to canonical uppercase format
  */
 export function normalizeUserRole(role: string): UserRole {
-  const r = (role || '').trim().toUpperCase();
+  const r = (role || '').trim().toUpperCase().replace(/\s+/g, '_');
   if (r === 'FOUNDER' || r === 'SUPER_ADMIN') return 'SUPER_ADMIN';
-  if (r === 'MARKETING') return 'MARKETING';
+  if (r === 'MARKETING_LEAD') return 'MARKETING_LEAD';
+  if (r === 'MARKETING_EXECUTIVE') return 'MARKETING_EXECUTIVE';
+  if (r === 'DEVELOPMENT_LEAD') return 'DEVELOPMENT_LEAD';
+  if (r === 'SENIOR_DEVELOPER') return 'SENIOR_DEVELOPER';
   if (r === 'DEVELOPER') return 'DEVELOPER';
+  if (r === 'MARKETING') return 'MARKETING';
   if (r === 'SALES_EXECUTIVE') return 'SALES_EXECUTIVE';
   if (r === 'TEAM_MEMBER') return 'MARKETING';
-  return 'MARKETING';
+  return 'MARKETING_EXECUTIVE';
 }
 
 /**

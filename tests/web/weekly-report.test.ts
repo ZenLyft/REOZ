@@ -152,3 +152,4 @@ describe('REOZ 3.0 Founder Weekly Performance Report & Cohort Analytics', () => 
     expect(report.founderActionPlan.length).toBeGreaterThan(0);
   });
 });
+

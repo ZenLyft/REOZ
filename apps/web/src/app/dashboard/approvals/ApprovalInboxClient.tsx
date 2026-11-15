@@ -583,7 +583,7 @@ export function ApprovalInboxClient({
                         onClick={() => handleWhatsAppDispatch(item)}
                         className="rounded-lg bg-[#151B2B] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#2B313C]"
                       >
-                        {processingKey === `send:${item.id}` ? 'Sending...' : 'Send via OpenWA'}
+                        {processingKey === `send:${item.id}` ? 'Sending...' : 'Send via WhatsApp'}
                       </button>
                     )}
                     <a
