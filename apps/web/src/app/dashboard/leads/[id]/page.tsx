@@ -357,6 +357,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             approvedQuoteInr={lead.approved_quote_inr || 0}
             grossMarginPercent={lead.gross_margin_percent || 0}
             currentUserRole={normalizeUserRole(userProfile.role)}
+            phone={defaultPhone}
           />
 
           <div className="rounded-2xl border border-[#E4E7EC] bg-[#FFFFFF] p-5 shadow-sm">

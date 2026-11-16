@@ -203,7 +203,7 @@ async function startWhatsAppSocket(forcePairingCode = false) {
           try {
             const chatId = `${senderDigits}@c.us`;
             // 1. Record inbound message
-            await supabase.from('whatsapp_messages').insert({
+            const { data: insertedMsg } = await supabase.from('whatsapp_messages').insert({
               session_id: SESSION_ID,
               chat_id: chatId,
               sender_number: senderDigits,
@@ -212,18 +212,30 @@ async function startWhatsAppSocket(forcePairingCode = false) {
               body,
               status: 'delivered',
               external_message_id: msg.key.id,
-            });
+            }).select('id').single();
 
             // 2. Link to lead if phone matches last 10 digits
             const last10 = senderDigits.slice(-10);
-            const { data: matchedLeads } = await supabase
-              .from('leads')
-              .select('id, organisation_name, pipeline_stage')
-              .or(`phone.ilike.%${last10}%,website_url.ilike.%${last10}%`)
+            let matchedLead = null;
+
+            const { data: matchedChannels } = await supabase
+              .from('contact_channels')
+              .select('lead_id, leads(id, organisation_name, category, location, pipeline_stage, recommended_service)')
+              .ilike('public_value', `%${last10}%`)
               .limit(1);
 
-            const lead = matchedLeads?.[0];
-            if (lead) {
+            if (matchedChannels?.[0]?.leads) {
+              matchedLead = matchedChannels[0].leads;
+            } else {
+              const { data: fallbackLeads } = await supabase
+                .from('leads')
+                .select('id, organisation_name, category, location, pipeline_stage, recommended_service')
+                .or(`website_url.ilike.%${last10}%,organisation_name.ilike.%${last10}%`)
+                .limit(1);
+              matchedLead = fallbackLeads?.[0] || null;
+            }
+
+            if (matchedLead) {
               await supabase
                 .from('leads')
                 .update({
@@ -231,9 +243,103 @@ async function startWhatsAppSocket(forcePairingCode = false) {
                   next_action: `Inbound WhatsApp reply received: "${body.slice(0, 100)}..."`,
                   updated_at: new Date().toISOString(),
                 })
-                .eq('id', lead.id);
+                .eq('id', matchedLead.id);
 
-              console.log(`[Inbound Linked] Lead ${lead.organisation_name} moved to 'replied' stage.`);
+              if (insertedMsg?.id) {
+                await supabase
+                  .from('whatsapp_messages')
+                  .update({ lead_id: matchedLead.id })
+                  .eq('id', insertedMsg.id);
+              }
+
+              console.log(`[Inbound Linked] Lead ${matchedLead.organisation_name} moved to 'replied' stage.`);
+            }
+
+            // 3. Autonomous AI Sales Closer for Immediate Revenue Conversion
+            const lowerBody = body.trim().toLowerCase();
+            const isOptOut = /^(stop|unsubscribe|optout|don't contact|dont contact|remove)$/i.test(lowerBody);
+
+            if (isOptOut) {
+              if (matchedLead) {
+                await supabase.from('leads').update({
+                  contact_restriction: 'opt_out',
+                  pipeline_stage: 'do_not_contact',
+                  updated_at: new Date().toISOString(),
+                }).eq('id', matchedLead.id);
+              }
+              console.log(`[Opt-Out Recorded] Prospect +${senderDigits} opted out.`);
+            } else if (body.length > 1 && body !== '[Media / Attachment]') {
+              const groqKey = process.env.GROQ_API_KEY;
+              if (groqKey) {
+                try {
+                  console.log(`[AI Sales Closer] Analyzing intent and generating conversion reply for +${senderDigits}...`);
+                  const orgName = matchedLead?.organisation_name || 'your business';
+                  const orgCategory = matchedLead?.category || 'business';
+
+                  const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${groqKey}`,
+                    },
+                    body: JSON.stringify({
+                      model: 'llama-3.3-70b-versatile',
+                      temperature: 0.3,
+                      messages: [
+                        {
+                          role: 'system',
+                          content: `You are Niresh Senthoor, Founder and CEO of ZenLyft (Coimbatore, Tamil Nadu, https://zenlyft.in, phone: +91 80159 29139).
+ZenLyft builds practical business websites, WhatsApp booking engines, and CRM automation for clinics, hospitals, gyms, restaurants, and educational institutions.
+Verified ZenLyft Products & Pricing:
+- Business Website + 1-Tap WhatsApp Consultation/Booking Engine: ₹17,999 (customizable up to ₹25,000 for advanced workflows, 48h live deployment, 1-yr hosting + SSL included).
+- Essential Business Website: ₹9,999.
+- HOMS Campus Hostel Outpass Management System: ₹45,000 pilot / ₹85,000 full campus.
+Guidelines:
+- Reply warmly, professionally, and concisely in English (or simple Tamil/Tanglish if the user texted in Tamil).
+- Under 60 words for quick WhatsApp readability.
+- If asking about pricing, details, demo, or showing interest:
+  1. Acknowledge their exact business: ${orgName} (${orgCategory}).
+  2. Clearly quote the transparent price (₹17,999 for booking engine or ₹9,999 for website).
+  3. Actionable close: "Shall I share a 1-minute video demo here on WhatsApp, or connect for a quick 5-minute call today?"
+- Never invent unverified clients or fake metrics. Ground strictly in ZenLyft verified facts.`
+                        },
+                        {
+                          role: 'user',
+                          content: `Prospect from ${orgName} (${orgCategory}) replied: "${body}"`
+                        }
+                      ]
+                    })
+                  });
+
+                  const aiData = await aiRes.json();
+                  const salesReply = aiData.choices?.[0]?.message?.content?.trim();
+
+                  if (salesReply) {
+                    console.log(`[AI Sales Closer Ready]: "${salesReply}"`);
+                    // Queue outbound reply into whatsapp_messages with natural 10s human delay
+                    setTimeout(async () => {
+                      try {
+                        await supabase.from('whatsapp_messages').insert({
+                          session_id: SESSION_ID,
+                          lead_id: matchedLead?.id || null,
+                          chat_id: chatId,
+                          sender_number: activePhone,
+                          recipient_number: senderDigits,
+                          direction: 'outbound',
+                          body: salesReply,
+                          status: 'queued',
+                          approval_id: null,
+                        });
+                        console.log(`[AI Closer Queued] Outreach reply queued for +${senderDigits}.`);
+                      } catch (qErr) {
+                        console.error('[AI Closer Queue Err]:', qErr.message);
+                      }
+                    }, 10000);
+                  }
+                } catch (aiErr) {
+                  console.error('[AI Closer Error]:', aiErr.message);
+                }
+              }
             }
 
             // 3. Log audit event

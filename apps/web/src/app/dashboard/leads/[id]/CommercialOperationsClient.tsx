@@ -16,6 +16,7 @@ interface CommercialOperationsClientProps {
   approvedQuoteInr?: number;
   grossMarginPercent?: number;
   currentUserRole: string;
+  phone?: string | null;
 }
 
 export function CommercialOperationsClient({
@@ -29,6 +30,7 @@ export function CommercialOperationsClient({
   approvedQuoteInr = 0,
   grossMarginPercent = 0,
   currentUserRole,
+  phone,
 }: CommercialOperationsClientProps) {
   const [stage, setStage] = useState<PipelineStage>(initialStage);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -49,6 +51,13 @@ export function CommercialOperationsClient({
     revenueDivision === 'division_b_institutional' ? 85000 : 17999
   );
   const [generatedProposal, setGeneratedProposal] = useState<any>(null);
+
+  // UPI Advance Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState<number>(
+    Math.round((revenueDivision === 'division_b_institutional' ? 85000 : 17999) / 2)
+  );
+  const [isSendingPayment, setIsSendingPayment] = useState(false);
 
   // Onboarding Modal State
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -140,6 +149,81 @@ export function CommercialOperationsClient({
     }
   }
 
+  async function handleSendPaymentRequest() {
+    setIsSendingPayment(true);
+    try {
+      const upiMessage = `*COMMERCIAL INVOICE & ADVANCE PAYMENT REQUEST*
+Client: *${leadName}*
+Provider: *ZenLyft (Coimbatore, Tamil Nadu)*
+Project: *${revenueDivision === 'division_b_institutional' ? 'HOMS Campus Outpass Automation' : 'Business Website + WhatsApp Consultation Engine'}*
+Total Package: *₹${customPrice.toLocaleString('en-IN')}*
+
+━━━━━━━━━━━━━━━━━━━━
+*50% ADVANCE PAYMENT TO INITIATE KICKOFF:*
+• Advance Payable: *₹${advanceAmount.toLocaleString('en-IN')}*
+• UPI ID: *8015929139@upi* (Niresh Senthoor / ZenLyft)
+• Direct UPI Pay Link: upi://pay?pa=8015929139@upi&pn=ZenLyft&am=${advanceAmount}&cu=INR&tn=ZenLyft+Advance
+
+*Bank Transfer Details:*
+• Account Holder: ZenLyft / Niresh Senthoor
+• Founder Phone: +91 80159 29139
+• Official Website: https://zenlyft.in
+
+Upon advance confirmation, our engineering team initiates production immediately with live delivery within 48 hours.`;
+
+      if (phone) {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const finalPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+        const res = await fetch('/api/whatsapp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientNumber: finalPhone,
+            text: upiMessage,
+            approvalId: 'direct_proposal_dispatch',
+            leadId,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          await updateLeadStageAction(leadId, 'payment_pending');
+          setStage('payment_pending');
+          setNotice({ type: 'success', text: `✓ Advance payment request dispatched to WhatsApp (+${finalPhone})! Stage updated to PAYMENT_PENDING.` });
+          setShowPaymentModal(false);
+          return;
+        }
+      }
+
+      navigator.clipboard.writeText(upiMessage);
+      await updateLeadStageAction(leadId, 'payment_pending');
+      setStage('payment_pending');
+      setNotice({ type: 'success', text: '✓ Payment request copied to clipboard and stage updated to PAYMENT_PENDING.' });
+      setShowPaymentModal(false);
+    } catch (err: any) {
+      setNotice({ type: 'error', text: err.message || 'Failed to dispatch payment request' });
+    } finally {
+      setIsSendingPayment(false);
+    }
+  }
+
+  async function handleConfirmPayment() {
+    setIsUpdating(true);
+    try {
+      const res = await updateLeadStageAction(leadId, 'paid');
+      if (res.success) {
+        setStage('paid');
+        setNotice({ type: 'success', text: '🎉 Payment confirmed! Lead moved to PAID. You can now launch customer onboarding!' });
+        setShowOnboardingModal(true);
+      } else {
+        setNotice({ type: 'error', text: res.error || 'Failed to update stage to paid' });
+      }
+    } catch {
+      setNotice({ type: 'error', text: 'Network error confirming payment' });
+    } finally {
+      setIsUpdating(false);
+    }
+  }
+
   async function handleStartOnboarding() {
     setIsUpdating(true);
     try {
@@ -225,6 +309,21 @@ export function CommercialOperationsClient({
           className="px-3 py-2 rounded-xl text-xs font-bold border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition text-center"
         >
           📄 Create Proposal
+        </button>
+
+        <button
+          onClick={() => setShowPaymentModal(true)}
+          className="px-3 py-2 rounded-xl text-xs font-bold border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition text-center"
+        >
+          💳 Request UPI Advance
+        </button>
+
+        <button
+          onClick={handleConfirmPayment}
+          disabled={isUpdating}
+          className="px-3 py-2 rounded-xl text-xs font-bold border border-green-600 bg-green-700 text-white hover:bg-green-800 transition text-center"
+        >
+          💰 Confirm Paid & Onboard
         </button>
       </div>
 
@@ -439,6 +538,78 @@ export function CommercialOperationsClient({
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPI Advance Payment Request Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="max-w-lg w-full bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-bold text-[#151B2B]">Request 50% UPI Advance</h3>
+                <p className="text-[11px] text-[#525A6B]">
+                  Send formal advance payment request to lock in kickoff and project delivery.
+                </p>
+              </div>
+              <button onClick={() => setShowPaymentModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-600">Advance Amount (INR):</label>
+                <input
+                  type="number"
+                  value={advanceAmount}
+                  onChange={(e) => setAdvanceAmount(Number(e.target.value) || 0)}
+                  className="w-full mt-1 border rounded-xl p-2 text-xs font-bold text-emerald-800"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1.5 text-xs text-emerald-950">
+                <div className="font-bold">UPI Payment Details (ZenLyft):</div>
+                <div>• UPI ID: <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-300">8015929139@upi</span></div>
+                <div>• Payee: Niresh Senthoor (CEO, ZenLyft)</div>
+                <div>• Contact: +91 80159 29139 | https://zenlyft.in</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 font-mono whitespace-pre-wrap max-h-36 overflow-y-auto">
+                {`*COMMERCIAL INVOICE & ADVANCE PAYMENT REQUEST*
+Client: *${leadName}*
+Provider: *ZenLyft (Coimbatore, Tamil Nadu)*
+Project: *${revenueDivision === 'division_b_institutional' ? 'HOMS Campus Outpass Automation' : 'Business Website + WhatsApp Consultation Engine'}*
+Total Package: *₹${customPrice.toLocaleString('en-IN')}*
+
+━━━━━━━━━━━━━━━━━━━━
+*50% ADVANCE PAYMENT TO INITIATE KICKOFF:*
+• Advance Payable: *₹${advanceAmount.toLocaleString('en-IN')}*
+• UPI ID: *8015929139@upi* (Niresh Senthoor / ZenLyft)
+• Direct UPI Pay Link: upi://pay?pa=8015929139@upi&pn=ZenLyft&am=${advanceAmount}&cu=INR&tn=ZenLyft+Advance
+
+*Bank Transfer Details:*
+• Account Holder: ZenLyft / Niresh Senthoor
+• Founder Phone: +91 80159 29139
+• Official Website: https://zenlyft.in`}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendPaymentRequest}
+                  disabled={isSendingPayment}
+                  className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-xs font-bold hover:bg-emerald-800 flex items-center gap-1.5 shadow-sm"
+                >
+                  {isSendingPayment ? 'Sending...' : '⚡ Send UPI Request via WhatsApp'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

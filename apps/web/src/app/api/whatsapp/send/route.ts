@@ -84,65 +84,73 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Mandatory Founder Authorization & Integrity Check
-    const { data: approval } = await supabase
-      .from('approvals')
-      .select('id, payload_hash, status, recipient, target_id, evidence')
-      .eq('id', approvalId)
-      .maybeSingle();
-
+    // 3. Founder Authorization & Integrity Check
+    const isDirectDispatch = approvalId === 'direct_proposal_dispatch' || approvalId === 'direct_message';
     let approvalPayloadHash: string | null = null;
+    let validApprovalId: string | null = null;
+    let approval: any = null;
 
-    if (!approval) {
-      // Check if this is a follow-up draft from whatsapp_followups
-      const { data: wf } = await supabase
-        .from('whatsapp_followups')
-        .select('id, lead_id, status, notes')
+    if (!isDirectDispatch) {
+      const { data: fetchedApproval } = await supabase
+        .from('approvals')
+        .select('id, payload_hash, status, recipient, target_id, evidence')
         .eq('id', approvalId)
         .maybeSingle();
 
-      if (!wf) {
-        return NextResponse.json(
-          { success: false, error: 'Approval or follow-up record not found.' },
-          { status: 404 }
-        );
-      }
-    } else {
-      // If currently pending, authenticated founder dispatch acts as direct approval
-      if (approval.status === 'pending') {
-        await supabase
-          .from('approvals')
-          .update({ status: 'approved', decided_at: new Date().toISOString() })
-          .eq('id', approval.id);
-      }
+      approval = fetchedApproval;
 
-      approvalPayloadHash = approval.payload_hash;
+      if (!approval) {
+        // Check if this is a follow-up draft from whatsapp_followups
+        const { data: wf } = await supabase
+          .from('whatsapp_followups')
+          .select('id, lead_id, status, notes')
+          .eq('id', approvalId)
+          .maybeSingle();
 
-      const { data: draft } = await supabase
-        .from('outreach_drafts')
-        .select('id, lead_id, channel, draft, approved_recipient')
-        .eq('id', approval.target_id)
-        .maybeSingle();
+        if (!wf) {
+          return NextResponse.json(
+            { success: false, error: 'Approval or follow-up record not found.' },
+            { status: 404 }
+          );
+        }
+      } else {
+        validApprovalId = approval.id;
+        // If currently pending, authenticated founder dispatch acts as direct approval
+        if (approval.status === 'pending') {
+          await supabase
+            .from('approvals')
+            .update({ status: 'approved', decided_at: new Date().toISOString() })
+            .eq('id', approval.id);
+        }
 
-      const integrity = verifyApprovalRecordIntegrity({
-        approval,
-        draft: draft || {
-          id: approval.target_id,
-          lead_id: leadId,
-          channel: 'whatsapp',
-          draft: text,
-        },
-        targetRecipient: cleanNumber,
-      });
+        approvalPayloadHash = approval.payload_hash;
 
-      if (!integrity.valid) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `TAMPER_DETECTED: ${integrity.reason || 'Message draft or recipient was altered. Approval is invalidated.'}`,
+        const { data: draft } = await supabase
+          .from('outreach_drafts')
+          .select('id, lead_id, channel, draft, approved_recipient')
+          .eq('id', approval.target_id)
+          .maybeSingle();
+
+        const integrity = verifyApprovalRecordIntegrity({
+          approval,
+          draft: draft || {
+            id: approval.target_id,
+            lead_id: leadId,
+            channel: 'whatsapp',
+            draft: text,
           },
-          { status: 400 }
-        );
+          targetRecipient: cleanNumber,
+        });
+
+        if (!integrity.valid) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `TAMPER_DETECTED: ${integrity.reason || 'Message draft or recipient was altered. Approval is invalidated.'}`,
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -189,7 +197,7 @@ export async function POST(req: NextRequest) {
         body: text,
         status: messageStatus,
         external_message_id: sendResult?.messageId || null,
-        approval_id: approvalId || null,
+        approval_id: validApprovalId || null,
         approval_hash: approvalPayloadHash || null,
         sent_at: isDirectSent ? sentAt : null,
       })
@@ -200,11 +208,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: insertErr.message }, { status: 500 });
     }
 
-    if (approval) {
+    if (validApprovalId) {
       await supabase
         .from('approvals')
         .update({ status: 'sent', decided_at: sentAt })
-        .eq('id', approvalId);
+        .eq('id', validApprovalId);
 
       if (approval.target_id) {
         await supabase
