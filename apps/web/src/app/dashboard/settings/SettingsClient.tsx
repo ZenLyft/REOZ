@@ -233,11 +233,11 @@ export function SettingsClient({ initialSettings }: { initialSettings: SettingsI
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold">LEVEL 3: Full Autopilot</span>
+              <span className="text-xs font-bold">LEVEL 3: Fully Automated</span>
               {autonomyLevel === 3 && <span className="text-xs font-bold text-[#FF8A5B]">● Active</span>}
             </div>
             <p className={`mt-1 text-[11px] ${autonomyLevel === 3 ? 'text-[#CBD5E1]' : 'text-[#525A6B]'}`}>
-              Auto-discovers & sends 1st cold WhatsApp automatically. Alerts iPhone PWA for next permission.
+              Autonomous 1st cold outreach & scheduled follow-up cadences. Pauses & alerts only for Customer Queries and Critical Decisions.
             </p>
           </button>
         </div>

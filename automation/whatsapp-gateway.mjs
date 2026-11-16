@@ -378,6 +378,9 @@ function startOutboundQueuePoller() {
 
           console.log(`[Queue Worker] Dispatched successfully! (Message ID: ${sentMsg?.key?.id})\n`);
 
+          // Human-like pacing between messages (8 seconds) to protect account reputation
+          await new Promise((r) => setTimeout(r, 8000));
+
           // Send founder instant WhatsApp alert on their own phone
           try {
             const selfJid = `${activePhone}@s.whatsapp.net`;

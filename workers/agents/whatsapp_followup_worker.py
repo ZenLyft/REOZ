@@ -207,18 +207,43 @@ async def run_followup_cycle() -> dict:
         print(f"\n[LEAD]: {org} (Moving: {current_stage} -> {next_stage})")
         print(f"[AI DRAFT via {provider}]: {draft_text}")
 
-        # Record followup task in database if table exists
+        # Fetch verified phone for autonomous queueing
+        channels = supabase_get(f"contact_channels?lead_id=eq.{lead_id}&channel_type=eq.phone&limit=1")
+        phone_val = channels[0].get("public_value") if channels else None
+        clean_phone = "".join(filter(str.isdigit, phone_val or ""))
+        if len(clean_phone) == 10 and clean_phone[0] in "6789":
+            clean_phone = f"91{clean_phone}"
+
+        # 1. Record followup row
         supabase_post(
             "whatsapp_followups",
             {
                 "lead_id": lead_id,
                 "session_id": "zenlyft-wa-01",
                 "stage": next_stage,
-                "status": "awaiting_approval",
+                "status": "queued" if clean_phone else "awaiting_approval",
                 "scheduled_for": scheduled_time.isoformat(),
                 "notes": draft_text,
             },
         )
+
+        # 2. Fully Automated Outbound Dispatch: Queue directly into whatsapp_messages
+        if clean_phone:
+            supabase_post(
+                "whatsapp_messages",
+                {
+                    "session_id": "zenlyft-wa-01",
+                    "chat_id": f"{clean_phone}@c.us",
+                    "sender_number": "918015929139",
+                    "recipient_number": clean_phone,
+                    "direction": "outbound",
+                    "body": draft_text,
+                    "status": "queued",
+                    "lead_id": lead_id,
+                },
+            )
+            print(f"[AUTONOMOUS QUEUE]: Directly queued outbound WhatsApp message for +{clean_phone}")
+
         queued_count += 1
 
     print("\n" + "=" * 65)

@@ -594,6 +594,86 @@ export function WhatsAppClient() {
         </div>
       )}
 
+      {/* Autopilot Policy Banner */}
+      <div className="p-4 rounded-2xl bg-[#151B2B] text-[#F5F6F8] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm border border-[#2B313C]">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+            <span className="text-base">⚡</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black tracking-wide uppercase text-emerald-400">
+                Full Autopilot Active
+              </span>
+              <span className="text-[10px] bg-[#2B313C] px-2 py-0.5 rounded text-[#CBD5E1]">
+                Zero-Click Cadence
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs text-[#CBD5E1]">
+              Outreach & follow-ups dispatch automatically with human pacing. REOZ alerts you only for <strong>Customer Queries</strong> and <strong>Critical Decisions</strong>.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/settings"
+          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 shrink-0"
+        >
+          Autopilot Settings &rarr;
+        </Link>
+      </div>
+
+      {/* Customer Queries Section (Prominent when queries exist) */}
+      {messages.some((m) => m.direction === 'inbound') && (
+        <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/20 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#151B2B]">
+                Customer Queries Awaiting Founder Reply ({messages.filter((m) => m.direction === 'inbound').length})
+              </h3>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+              Founder Attention Required
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {messages
+              .filter((m) => m.direction === 'inbound')
+              .slice(-4)
+              .reverse()
+              .map((query) => (
+                <div key={query.id} className="bg-[#FFFFFF] border border-[#E4E7EC] p-3.5 rounded-xl shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-[#151B2B]">
+                      +{(query.sender_number || '').replace(/^(\d{2})(\d{5})(\d{5})$/, '+$1 $2 $3')}
+                    </span>
+                    <span className="text-[10px] text-[#667085]">
+                      {new Date(query.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#525A6B] bg-[#F5F6F8] p-2.5 rounded-lg border border-[#ECEFF3] italic">
+                    "{query.body}"
+                  </p>
+                  <div className="pt-1 flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Inbound Query
+                    </span>
+                    <a
+                      href={`https://wa.me/${(query.sender_number || '').replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-[#F5F6F8] bg-emerald-700 hover:bg-emerald-800 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <span>Reply on WhatsApp</span>
+                      <span>&rarr;</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Live Supabase Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-[#FFFFFF] border border-[#E4E7EC] p-4 rounded-xl">
