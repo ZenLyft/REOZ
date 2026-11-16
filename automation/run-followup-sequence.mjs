@@ -20,7 +20,8 @@ async function runFollowupWave() {
     .from('leads')
     .select('id, organisation_name, category, location, recommended_service, pipeline_stage, contact_restriction')
     .eq('pipeline_stage', 'contacted')
-    .is('contact_restriction', null)
+    .neq('contact_restriction', 'do_not_contact')
+    .neq('contact_restriction', 'opt_out')
     .limit(50);
 
   if (leadErr || !contactedLeads || contactedLeads.length === 0) {
