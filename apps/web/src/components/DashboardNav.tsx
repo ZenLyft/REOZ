@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/approvals', label: 'Approvals', exact: false },
   { href: '/dashboard/whatsapp', label: 'WhatsApp', exact: false },
   { href: '/dashboard/projects', label: 'Projects', exact: false },
+  { href: '/dashboard/proposals', label: 'Proposals', exact: false },
   { href: '/dashboard/developer', label: 'Developer', exact: false },
   { href: '/dashboard/revenue', label: 'Revenue', exact: false },
   { href: '/dashboard/team', label: 'Team', exact: false },
