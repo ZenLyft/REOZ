@@ -31,3 +31,4 @@ export default async function ProposalsPage() {
 
   return <ProposalsClient initialLeads={formattedLeads} />;
 }
+

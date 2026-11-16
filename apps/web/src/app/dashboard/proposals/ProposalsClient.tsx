@@ -30,7 +30,7 @@ export function ProposalsClient({ initialLeads }: ProposalsClientProps) {
 
   const proposal: ProposalPayload = buildProposalForProduct({
     leadId: selectedLead?.id || 'sample',
-    division: servicePackage === 'homs_pilot' ? 'division_b_institutional' : 'division_a_business',
+    division: servicePackage === 'homs_pilot' ? 'division_b_institutional' : 'division_a_digital',
     serviceLine: servicePackage,
     clientName: selectedLead?.organisation_name || 'Client Business',
     customQuoteInr: customPrice,
@@ -340,3 +340,4 @@ Would you like us to generate the formal invoice and begin kickoff this week?`;
     </div>
   );
 }
+
